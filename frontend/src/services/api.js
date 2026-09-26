@@ -48,6 +48,14 @@ export const api = {
   createBooking: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/bookings`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
   updateBooking: (tripId, bid, data) => fetch(`${API_BASE_URL}/trips/${tripId}/bookings/${bid}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
   cancelBooking: (tripId, bid, data) => fetch(`${API_BASE_URL}/trips/${tripId}/bookings/${bid}`, { method: 'DELETE', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  deleteBooking: (tripId, bid) => fetch(`${API_BASE_URL}/trips/${tripId}/bookings/${bid}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse),
+
+  // Itinerary
+  getItinerary: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/itinerary`, { headers: getHeaders() }).then(handleResponse),
+  createItineraryBlock: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/itinerary`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  updateItineraryBlock: (tripId, blockId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/itinerary/${blockId}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  deleteItineraryBlock: (tripId, blockId) => fetch(`${API_BASE_URL}/trips/${tripId}/itinerary/${blockId}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse),
+  autoGenerateItinerary: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/itinerary/auto-generate`, { method: 'POST', headers: getHeaders() }).then(handleResponse),
 
   // Expenses
   getExpenses: (tripId, params = {}) => {
@@ -75,5 +83,18 @@ export const api = {
   getLedger: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/ledger`, { headers: getHeaders() }).then(handleResponse),
   getAuditLogs: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/audit`, { headers: getHeaders() }).then(handleResponse),
   getReport: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/report`, { headers: getHeaders() }).then(handleResponse),
-  downloadReportPDFUrl: (tripId) => `${API_BASE_URL}/trips/${tripId}/report/pdf`
+  downloadReportPDFUrl: (tripId) => `${API_BASE_URL}/trips/${tripId}/report/pdf`,
+
+  // AI Savings Recommendations
+  getSavingsRecommendations: (tripId, location = null) => {
+    const query = location ? `?location=${encodeURIComponent(location)}` : '';
+    return fetch(`${API_BASE_URL}/trips/${tripId}/recommendations${query}`, { headers: getHeaders() }).then(handleResponse);
+  },
+  refreshSavingsRecommendations: (tripId, location = null) => {
+    return fetch(`${API_BASE_URL}/trips/${tripId}/recommendations/refresh`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ location })
+    }).then(handleResponse);
+  }
 };

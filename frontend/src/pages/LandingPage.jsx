@@ -24,26 +24,27 @@ export const LandingPage = () => {
       <section style={{
         backgroundColor: 'var(--color-forest-ink)',
         color: 'var(--color-paper-cream)',
-        paddingTop: '80px',
-        paddingBottom: '100px',
+        paddingTop: 'clamp(40px, 8vw, 80px)',
+        paddingBottom: 'clamp(50px, 9vw, 100px)',
         position: 'relative',
         overflow: 'hidden',
         borderBottom: '2px solid var(--color-sage-border)'
       }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
 
           {/* Top Eyebrow */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
             <span className="eyebrow-label">00 / VINTAGE POSTER EDITION</span>
-            <div style={{ height: '1px', flex: 1, backgroundColor: 'var(--color-sage-border)' }} />
+            <div style={{ height: '1px', flex: 1, minWidth: '40px', backgroundColor: 'var(--color-sage-border)' }} />
           </div>
 
           {/* Massive Display Title */}
           <h1 className="deacon-display" style={{
-            fontSize: 'clamp(54px, 8vw, 110px)',
+            fontSize: 'clamp(40px, 8vw, 110px)',
             color: 'var(--color-paper-cream)',
-            marginBottom: '20px',
-            maxWidth: '1000px'
+            marginBottom: '18px',
+            maxWidth: '1000px',
+            lineHeight: 0.9
           }}>
             SETTLE UP.<br />
             <span style={{ color: 'var(--color-meadow)' }}>OUTDOORS. TOGETHER.</span>
@@ -51,25 +52,25 @@ export const LandingPage = () => {
 
           {/* Subtitle */}
           <p style={{
-            fontSize: 'clamp(16px, 2.2vw, 22px)',
+            fontSize: 'clamp(15px, 2.2vw, 22px)',
             color: '#c9d1c8',
             maxWidth: '720px',
-            lineHeight: 1.4,
-            marginBottom: '36px',
+            lineHeight: 1.45,
+            marginBottom: '32px',
             fontFamily: 'var(--font-graphik)'
           }}>
             A financial product wearing a patch jacket. Double-entry trip expense engine built for mountain trails, beach villas, and group roadtrips — no Venmo awkwardness.
           </p>
 
           {/* CTAs */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', marginBottom: '64px' }}>
-            <Link to="/register" className="btn-meadow">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center', marginBottom: '48px' }}>
+            <Link to="/register" className="btn-meadow" style={{ flexGrow: 0 }}>
               START FREE TRIP <ArrowRight size={18} />
             </Link>
-            <a href="#calculator" className="btn-ghost-dark">
+            <a href="#calculator" className="btn-ghost-dark" style={{ flexGrow: 0 }}>
               TRY SPLIT CALCULATOR
             </a>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px', color: 'var(--color-moss-gray)', fontSize: '13px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-moss-gray)', fontSize: '13px', padding: '4px 0' }}>
               <ShieldCheck size={16} color="var(--color-meadow)" /> Double-Entry Ledger Verified
             </div>
           </div>
@@ -77,7 +78,7 @@ export const LandingPage = () => {
           {/* HERO IMAGE FRAMEWORK using forest.png */}
           <div style={{
             position: 'relative',
-            borderRadius: '24px',
+            borderRadius: '20px',
             border: '2px solid var(--color-sage-border)',
             overflow: 'hidden',
             boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
@@ -88,51 +89,58 @@ export const LandingPage = () => {
               alt="Vintage Forest Expedition Hero Artwork"
               style={{
                 width: '100%',
-                maxHeight: '520px',
+                maxHeight: '480px',
+                minHeight: '220px',
                 objectFit: 'cover',
                 display: 'block'
               }}
             />
 
             {/* Overlapping Sticker Badges */}
-            <div style={{ position: 'absolute', top: '24px', left: '24px' }}>
+            <div style={{ position: 'absolute', top: 'clamp(10px, 2.5vw, 24px)', left: 'clamp(10px, 2.5vw, 24px)' }}>
               <span className="sticker-badge">PRIORITY EXPEDITION</span>
             </div>
 
-            <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
+            <div style={{ position: 'absolute', top: 'clamp(10px, 2.5vw, 24px)', right: 'clamp(10px, 2.5vw, 24px)' }}>
               <span className="sticker-badge-navy">DOUBLE-ENTRY ENGINE</span>
             </div>
 
             <div style={{
               position: 'absolute',
-              bottom: '24px',
-              left: '24px',
-              backgroundColor: 'rgba(18, 35, 21, 0.9)',
+              bottom: 'clamp(10px, 2.5vw, 24px)',
+              left: 'clamp(10px, 2.5vw, 24px)',
+              right: 'clamp(10px, 2.5vw, 24px)',
+              backgroundColor: 'rgba(18, 35, 21, 0.92)',
               backdropFilter: 'blur(8px)',
-              padding: '16px 24px',
-              borderRadius: '16px',
+              padding: 'clamp(10px, 2vw, 16px) clamp(12px, 3vw, 24px)',
+              borderRadius: '14px',
               border: '1px solid var(--color-sage-border)',
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
+              gap: 'clamp(10px, 2vw, 16px)',
               maxWidth: '480px'
             }}>
               <div style={{
-                width: '44px',
-                height: '44px',
+                width: 'clamp(36px, 5vw, 44px)',
+                height: 'clamp(36px, 5vw, 44px)',
                 borderRadius: '50%',
                 backgroundColor: 'var(--color-meadow)',
                 color: 'var(--color-forest-ink)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: '900'
+                fontWeight: '900',
+                flexShrink: 0
               }}>
-                <Compass size={24} />
+                <Compass size={20} />
               </div>
-              <div>
-                <h4 style={{ color: 'var(--color-paper-cream)', fontSize: '16px', marginBottom: '2px' }}>THAILAND SKI & BEACH 2026</h4>
-                <p style={{ color: 'var(--color-moss-gray)', fontSize: '13px' }}>4 Members • ₹4,500 Total Ledger Balance • 100% Settled</p>
+              <div style={{ minWidth: 0 }}>
+                <h4 style={{ color: 'var(--color-paper-cream)', fontSize: 'clamp(13px, 2.5vw, 16px)', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  THAILAND SKI & BEACH 2026
+                </h4>
+                <p style={{ color: 'var(--color-moss-gray)', fontSize: 'clamp(11px, 2vw, 13px)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  4 Members • ₹4,500 Total Balance • 100% Settled
+                </p>
               </div>
             </div>
           </div>
@@ -141,37 +149,37 @@ export const LandingPage = () => {
       </section>
 
       {/* FEATURE 01: CALCULATOR & DOUBLE-ENTRY RIGOR */}
-      <section id="calculator" style={{ padding: '96px 0', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 24px' }}>
+      <section id="calculator" style={{ padding: 'clamp(48px, 8vw, 96px) 0', borderBottom: '1px solid var(--color-sage-border)' }}>
+        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', alignItems: 'center' }}>
+          <div className="responsive-grid-2" style={{ alignItems: 'center' }}>
             <div>
               <span className="eyebrow-label">01 / FINANCIALLY RIGOROUS</span>
-              <h2 style={{ fontSize: 'clamp(36px, 5vw, 64px)', margin: '16px 0 24px 0', color: 'var(--color-forest-ink)' }}>
+              <h2 style={{ fontSize: 'clamp(30px, 5vw, 64px)', margin: '14px 0 20px 0', color: 'var(--color-forest-ink)' }}>
                 THE POSTER LEDGER PRINCIPLE
               </h2>
-              <p style={{ fontSize: '17px', lineHeight: 1.5, color: 'var(--color-charcoal)', marginBottom: '24px' }}>
+              <p style={{ fontSize: '16px', lineHeight: 1.5, color: 'var(--color-charcoal)', marginBottom: '24px' }}>
                 Standard expense apps use simple averages that fail when someone leaves a trip 2 days early, or when students get a 20% discount. <strong>TripLedger</strong> uses a double-entry debit/credit ledger structure that guarantees every cent is accounted for.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{ padding: '8px', backgroundColor: 'rgba(85,221,74,0.15)', borderRadius: '8px', color: 'var(--color-forest-ink)' }}>
+                  <div style={{ padding: '8px', backgroundColor: 'rgba(85,221,74,0.15)', borderRadius: '8px', color: 'var(--color-forest-ink)', flexShrink: 0 }}>
                     <Scale size={20} color="var(--color-forest-ink)" />
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '16px', marginBottom: '4px' }}>Automated Settlement Minimization</h4>
-                    <p style={{ fontSize: '14px', color: '#555555' }}>Reduces 20 complex group transactions down to just 3 minimal payments.</p>
+                    <h4 style={{ fontSize: '15px', marginBottom: '4px' }}>Automated Settlement Minimization</h4>
+                    <p style={{ fontSize: '13px', color: '#555555' }}>Reduces 20 complex group transactions down to just 3 minimal payments.</p>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{ padding: '8px', backgroundColor: 'rgba(115,211,235,0.2)', borderRadius: '8px' }}>
+                  <div style={{ padding: '8px', backgroundColor: 'rgba(115,211,235,0.2)', borderRadius: '8px', flexShrink: 0 }}>
                     <Sparkles size={20} color="var(--color-forest-ink)" />
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '16px', marginBottom: '4px' }}>Smart Receipt OCR Parser</h4>
-                    <p style={{ fontSize: '14px', color: '#555555' }}>Drop any receipt photo or invoice to automatically extract items, taxes, and split targets.</p>
+                    <h4 style={{ fontSize: '15px', marginBottom: '4px' }}>Smart Receipt OCR Parser</h4>
+                    <p style={{ fontSize: '13px', color: '#555555' }}>Drop any receipt photo or invoice to automatically extract items, taxes, and split targets.</p>
                   </div>
                 </div>
               </div>
@@ -179,17 +187,17 @@ export const LandingPage = () => {
 
             {/* Live Calculator Card */}
             <div className="card-cream" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-14px', right: '24px' }}>
+              <div style={{ position: 'absolute', top: '-14px', right: '20px' }}>
                 <span className="sticker-badge">INTERACTIVE DEMO</span>
               </div>
 
-              <h3 style={{ fontSize: '24px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Calculator size={22} color="var(--color-meadow)" /> Live Split Preview
+              <h3 style={{ fontSize: '22px', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Calculator size={20} color="var(--color-meadow)" /> Live Split Preview
               </h3>
 
               {/* Slider 1: Expenses */}
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
                   <span>Total Group Expenses:</span>
                   <span style={{ color: 'var(--color-forest-ink)', fontWeight: 800 }}>₹{totalExpenses}</span>
                 </div>
@@ -205,8 +213,8 @@ export const LandingPage = () => {
               </div>
 
               {/* Slider 2: Travelers */}
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
                   <span>Group Travelers:</span>
                   <span style={{ color: 'var(--color-forest-ink)', fontWeight: 800 }}>{numTravelers} People</span>
                 </div>
@@ -222,8 +230,8 @@ export const LandingPage = () => {
               </div>
 
               {/* Toggle: Student Tier */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#e8e2d7', padding: '12px 16px', borderRadius: '12px', marginBottom: '24px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>Apply Student Tier (0.8x Multiplier)</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#e8e2d7', padding: '10px 14px', borderRadius: '10px', marginBottom: '20px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>Apply Student Tier (0.8x Multiplier)</span>
                 <input
                   type="checkbox"
                   checked={studentDiscount}
@@ -233,20 +241,20 @@ export const LandingPage = () => {
               </div>
 
               {/* Output Display */}
-              <div style={{ backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-paper-cream)', padding: '20px', borderRadius: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-sage-border)', paddingBottom: '12px', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--color-moss-gray)' }}>Standard Traveler Share:</span>
-                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-paper-cream)' }}>₹{standardShare}</span>
+              <div style={{ backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-paper-cream)', padding: '16px', borderRadius: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-sage-border)', paddingBottom: '10px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--color-moss-gray)' }}>Standard Traveler Share:</span>
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-paper-cream)' }}>₹{standardShare}</span>
                 </div>
                 {studentDiscount && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-sage-border)', paddingBottom: '12px', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--color-meadow)' }}>Student Tier (20% Off):</span>
-                    <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-meadow)' }}>₹{studentShare}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-sage-border)', paddingBottom: '10px', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--color-meadow)' }}>Student Tier (20% Off):</span>
+                    <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-meadow)' }}>₹{studentShare}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-moss-gray)' }}>Settlement Direct Payments:</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-river-blue)' }}>{numTravelers - 1} Transactions Total</span>
+                  <span style={{ fontSize: '11px', color: 'var(--color-moss-gray)' }}>Settlement Direct Payments:</span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-river-blue)' }}>{numTravelers - 1} Transactions Total</span>
                 </div>
               </div>
 
@@ -258,20 +266,21 @@ export const LandingPage = () => {
       </section>
 
       {/* FEATURE 02: THREE PILLARS GRID */}
-      <section style={{ padding: '96px 0', backgroundColor: '#eae4d9', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 24px' }}>
+      <section style={{ padding: 'clamp(48px, 8vw, 96px) 0', backgroundColor: '#eae4d9', borderBottom: '1px solid var(--color-sage-border)' }}>
+        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
 
-          <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto 64px auto' }}>
+          <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto clamp(32px, 6vw, 64px) auto' }}>
             <span className="eyebrow-label">02 / BUILT FOR REAL TRIPS</span>
-            <h2 style={{ fontSize: 'clamp(36px, 5vw, 58px)', marginTop: '12px', color: 'var(--color-forest-ink)' }}>
+            <h2 style={{ fontSize: 'clamp(28px, 5vw, 58px)', marginTop: '12px', color: 'var(--color-forest-ink)' }}>
               ENGINEERED FOR THE UNPREDICTABLE
             </h2>
-            <p style={{ fontSize: '16px', color: '#555555', marginTop: '12px' }}>
+            <p style={{ fontSize: '15px', color: '#555555', marginTop: '10px' }}>
               Trips change. People join late, leave early, or buy shared groceries. Here is how TripLedger handles every edge case seamlessly.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
+
 
             {/* Card 1 */}
             <div className="card-cream" style={{ display: 'flex', flexDirection: 'column', justifyBetween: 'space-between' }}>
@@ -357,10 +366,10 @@ export const LandingPage = () => {
       </section>
 
       {/* TESTIMONIAL / POSTER SECTION */}
-      <section style={{ padding: '96px 0', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 24px' }}>
+      <section style={{ padding: 'clamp(48px, 8vw, 96px) 0', borderBottom: '1px solid var(--color-sage-border)' }}>
+        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: '48px', alignItems: 'center' }}>
+          <div className="responsive-grid-2" style={{ alignItems: 'center', gap: 'clamp(28px, 5vw, 48px)' }}>
             <div style={{ position: 'relative' }}>
               <div style={{
                 borderRadius: '20px',
@@ -371,41 +380,42 @@ export const LandingPage = () => {
                 <img
                   src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"
                   alt="Mountain Traveler Expedition"
-                  style={{ width: '100%', height: '420px', objectFit: 'cover', display: 'block' }}
+                  style={{ width: '100%', height: 'clamp(240px, 45vw, 420px)', objectFit: 'cover', display: 'block' }}
                 />
               </div>
-              <div style={{ position: 'absolute', bottom: '-16px', left: '24px' }}>
+              <div style={{ position: 'absolute', bottom: '-14px', left: 'clamp(12px, 3vw, 24px)' }}>
                 <span className="sticker-badge">VERIFIED TRAIL TESTED</span>
               </div>
             </div>
 
             <div>
               <span className="eyebrow-label">03 / FIELD REPORT</span>
-              <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', margin: '12px 0 20px 0', color: 'var(--color-forest-ink)' }}>
+              <h2 style={{ fontSize: 'clamp(26px, 4vw, 52px)', margin: '12px 0 18px 0', color: 'var(--color-forest-ink)' }}>
                 "WE SAVED 5 HOURS OF MATH AFTER OUR 10-DAY ROADTRIP."
               </h2>
-              <blockquote style={{ fontSize: '18px', color: 'var(--color-charcoal)', lineHeight: 1.5, marginBottom: '24px', fontStyle: 'italic' }}>
+              <blockquote style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'var(--color-charcoal)', lineHeight: 1.5, marginBottom: '20px', fontStyle: 'italic' }}>
                 "We had 8 people sharing Airbnb villas, car rentals, and mountain guide fees. Someone left on day 6. TripLedger calculated every single prorated debt in seconds. Nobody complained, and settlements were completed by midnight."
               </blockquote>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{
-                  width: '44px',
-                  height: '44px',
+                  width: '42px',
+                  height: '42px',
                   borderRadius: '50%',
                   backgroundColor: 'var(--color-forest-ink)',
                   color: 'var(--color-meadow)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 800
+                  fontWeight: 800,
+                  flexShrink: 0
                 }}>
                   CW
                 </div>
                 <div>
-                  <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-forest-ink)' }}>
+                  <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-forest-ink)', fontSize: '14px' }}>
                     CARTER & EXPEDITION CREW
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--color-moss-gray)' }}>Cascade Range Trail Trip • Summer 2026</div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-moss-gray)' }}>Cascade Range Trail Trip • Summer 2026</div>
                 </div>
               </div>
             </div>
@@ -418,19 +428,19 @@ export const LandingPage = () => {
       <section style={{
         backgroundColor: 'var(--color-forest-ink)',
         color: 'var(--color-paper-cream)',
-        padding: '96px 0',
+        padding: 'clamp(48px, 8vw, 96px) 0',
         textAlign: 'center',
         position: 'relative'
       }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
           <span className="eyebrow-label">JOIN THE EXPEDITION</span>
-          <h2 className="deacon-display" style={{ fontSize: 'clamp(48px, 7vw, 84px)', margin: '20px 0', color: 'var(--color-paper-cream)' }}>
+          <h2 className="deacon-display" style={{ fontSize: 'clamp(36px, 7vw, 84px)', margin: '16px 0', color: 'var(--color-paper-cream)' }}>
             READY TO PLAN YOUR <span style={{ color: 'var(--color-meadow)' }}>NEXT TRIP?</span>
           </h2>
-          <p style={{ fontSize: '18px', color: '#c9d1c8', marginBottom: '36px' }}>
+          <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: '#c9d1c8', marginBottom: '32px' }}>
             Create your trip ledger in under 60 seconds. Invite your friends, track bookings, and enjoy stress-free settlements.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <Link to="/register" className="btn-meadow">
               CREATE YOUR TRIP NOW <ArrowRight size={18} />
             </Link>
@@ -440,6 +450,7 @@ export const LandingPage = () => {
           </div>
         </div>
       </section>
+
 
       {/* FLOATING CALCULATE FUNDING CHIP */}
       <div className="floating-chip">

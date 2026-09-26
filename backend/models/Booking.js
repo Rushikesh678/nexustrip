@@ -25,6 +25,12 @@ const BookingSchema = new mongoose.Schema({
     default: 'other'
   },
   description: { type: String, required: true },
+  location: { 
+    type: String, 
+    required: [true, 'Booking location is compulsory'], 
+    trim: true,
+    default: 'Trip Destination' 
+  },
 
   start_date: { type: Date, required: true },
   end_date: { type: Date, required: true },
@@ -71,6 +77,8 @@ const BookingSchema = new mongoose.Schema({
   cancellation_reason: { type: String, default: '' },
   refund_received_date: { type: Date },
   refund_amount: { type: Number, default: 0 },
+  itineraryBlockId: { type: mongoose.Schema.Types.ObjectId, ref: 'ItineraryBlock', default: null },
+  subgroupTag: { type: String, default: '' }, // e.g. "Room 101", "Room 102"
   notes: { type: String, default: '' }
 }, { timestamps: true });
 

@@ -12,9 +12,9 @@ router.post('/', auth, async (req, res) => {
   try {
     const { tripId } = req.params;
     const {
-      description, type, vendor_name, booking_reference, start_date, end_date,
+      description, location, type, vendor_name, booking_reference, start_date, end_date,
       quantity, total_cost, currency, allocation_model, assigned_participant_ids,
-      paid_by, refund_policy, cancellation_deadline, notes
+      paid_by, refund_policy, cancellation_deadline, notes, itineraryBlockId, subgroupTag
     } = req.body;
 
     const trip = await Trip.findById(tripId);
@@ -22,8 +22,8 @@ router.post('/', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Trip not found.' });
     }
 
-    if (!description || total_cost === undefined || !start_date || !end_date) {
-      return res.status(400).json({ success: false, message: 'Description, total cost, start date, and end date are required.' });
+    if (!description || !location || !location.trim() || total_cost === undefined || !start_date || !end_date) {
+      return res.status(400).json({ success: false, message: 'Description, location, total cost, start date, and end date are required.' });
     }
 
     const participants = await Participant.find({ trip_id: tripId, status: { $ne: 'removed' } });
@@ -82,6 +82,7 @@ router.post('/', auth, async (req, res) => {
     const booking = new Booking({
       trip_id: tripId,
       description,
+      location: location.trim(),
       type: type || 'other',
       vendor_name: vendor_name || '',
       booking_reference: booking_reference || '',
@@ -99,6 +100,8 @@ router.post('/', auth, async (req, res) => {
       amount_paid: paid_by ? Number(total_cost) : 0,
       refund_policy: refund_policy || 'full',
       cancellation_deadline: cancellation_deadline ? new Date(cancellation_deadline) : null,
+      itineraryBlockId: itineraryBlockId || null,
+      subgroupTag: subgroupTag || '',
       notes: notes || '',
       status: 'confirmed'
     });
@@ -127,7 +130,7 @@ router.post('/', auth, async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { tripId } = req.params;
-    const bookings = await Booking.find({ trip_id: tripId }).populate('assigned_participants.participant_id paid_by');
+    const bookings = await Booking.find({ trip_id: tripId, status: { $ne: 'cancelled' } }).populate('assigned_participants.participant_id paid_by');
     res.json({ success: true, bookings });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error fetching bookings.' });
@@ -138,17 +141,27 @@ router.get('/', auth, async (req, res) => {
 router.put('/:bid', auth, async (req, res) => {
   try {
     const { tripId, bid } = req.params;
+    const trip = await Trip.findById(tripId);
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'Trip not found.' });
+    }
+    if (trip.organizer_id.toString() !== req.user.userId) {
+      return res.status(403).json({ success: false, message: 'Only the trip host can edit bookings.' });
+    }
+
     const booking = await Booking.findOne({ _id: bid, trip_id: tripId });
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found.' });
     }
 
     const {
-      description, type, vendor_name, booking_reference, start_date, end_date,
-      quantity, total_cost, allocation_model, assigned_participant_ids, paid_by, status, notes
+      description, location, type, vendor_name, booking_reference, start_date, end_date,
+      quantity, total_cost, allocation_model, assigned_participant_ids, paid_by, status, notes,
+      itineraryBlockId, subgroupTag
     } = req.body;
 
     if (description) booking.description = description;
+    if (location !== undefined && location.trim()) booking.location = location.trim();
     if (type) booking.type = type;
     if (vendor_name !== undefined) booking.vendor_name = vendor_name;
     if (booking_reference !== undefined) booking.booking_reference = booking_reference;
@@ -163,6 +176,8 @@ router.put('/:bid', auth, async (req, res) => {
       booking.amount_paid = paid_by ? booking.total_cost : 0;
     }
     if (status) booking.status = status;
+    if (itineraryBlockId !== undefined) booking.itineraryBlockId = itineraryBlockId || null;
+    if (subgroupTag !== undefined) booking.subgroupTag = subgroupTag || '';
     if (notes !== undefined) booking.notes = notes;
 
     // Recalculate shares if assigned_participant_ids or cost changed
@@ -233,46 +248,39 @@ router.put('/:bid', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/v1/trips/:tripId/bookings/:bid - Cancel booking
+// DELETE /api/v1/trips/:tripId/bookings/:bid - Delete booking
 router.delete('/:bid', auth, async (req, res) => {
   try {
     const { tripId, bid } = req.params;
-    const { reason, refund_amount } = req.body;
+
+    const trip = await Trip.findById(tripId);
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'Trip not found.' });
+    }
+    if (trip.organizer_id.toString() !== req.user.userId) {
+      return res.status(403).json({ success: false, message: 'Only the trip host can delete bookings.' });
+    }
 
     const booking = await Booking.findOne({ _id: bid, trip_id: tripId });
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found.' });
     }
 
-    booking.status = 'cancelled';
-    booking.cancellation_date = new Date();
-    booking.cancellation_reason = reason || 'Cancelled by organizer';
-    if (refund_amount !== undefined) {
-      booking.refund_amount = Number(refund_amount);
-      booking.refund_received_date = new Date();
-    }
-
-    // Zero out owed amounts for cancelled booking
-    booking.assigned_participants.forEach(ap => {
-      ap.amount_owed = 0;
-    });
-
-    await booking.save();
-
+    await Booking.findByIdAndDelete(bid);
     await recalculateParticipantBalances(tripId);
 
     await AuditLog.create({
       tripId,
-      action: 'BOOKING_CANCELLED',
+      action: 'BOOKING_DELETED',
       actorId: req.user.userId,
       actorName: req.user.name,
       target: { type: 'BOOKING', id: bid },
-      reason: `Cancelled booking "${booking.description}". ${reason || ''}`
+      reason: `Deleted booking "${booking.description}" ($${booking.total_cost})`
     });
 
-    res.json({ success: true, message: 'Booking cancelled.', booking });
+    res.json({ success: true, message: 'Booking deleted successfully.' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error cancelling booking.' });
+    res.status(500).json({ success: false, message: 'Server error deleting booking.' });
   }
 });
 

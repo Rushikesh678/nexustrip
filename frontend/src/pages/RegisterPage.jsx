@@ -74,36 +74,36 @@ export const RegisterPage = () => {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'var(--color-paper-cream)',
-      padding: '40px 24px',
+      padding: 'clamp(20px, 4vw, 40px) clamp(16px, 3vw, 24px)',
       position: 'relative'
     }}>
       <div className="card-cream" style={{ width: '100%', maxWidth: '500px', position: 'relative' }}>
         
         {/* Sticker Badge */}
-        <div style={{ position: 'absolute', top: '-14px', right: '24px' }}>
+        <div style={{ position: 'absolute', top: '-14px', right: 'clamp(12px, 3vw, 24px)' }}>
           <span className="sticker-badge">NEW EXPLORER PASS</span>
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
-            width: '54px',
-            height: '54px',
+            width: '50px',
+            height: '50px',
             borderRadius: '14px',
             backgroundColor: 'var(--color-forest-ink)',
             color: 'var(--color-meadow)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '16px',
+            marginBottom: '14px',
             boxShadow: '0 4px 14px rgba(18, 35, 21, 0.2)'
           }}>
-            <Compass size={30} />
+            <Compass size={26} />
           </div>
-          <span className="eyebrow-label" style={{ display: 'block', marginBottom: '6px' }}>01 / REGISTRATION</span>
-          <h2 style={{ fontSize: '36px', color: 'var(--color-forest-ink)', letterSpacing: '-0.02em' }}>
+          <span className="eyebrow-label" style={{ display: 'block', marginBottom: '4px' }}>01 / REGISTRATION</span>
+          <h2 style={{ fontSize: 'clamp(24px, 5vw, 36px)', color: 'var(--color-forest-ink)', letterSpacing: '-0.02em' }}>
             CREATE EXPEDITION ACCOUNT
           </h2>
-          <p style={{ color: '#555555', fontSize: '14px', marginTop: '6px' }}>
+          <p style={{ color: '#555555', fontSize: '13px', marginTop: '4px' }}>
             Join TripLedger for effortless group expense settlements
           </p>
         </div>
@@ -112,18 +112,18 @@ export const RegisterPage = () => {
           <div style={{
             backgroundColor: '#fee2e2',
             color: '#b91c1c',
-            padding: '12px 16px',
+            padding: '12px 14px',
             borderRadius: '10px',
             fontSize: '13px',
             fontWeight: 600,
-            marginBottom: '20px',
+            marginBottom: '18px',
             border: '1px solid #fca5a5'
           }}>
             {error}
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%', maxWidth: '100%', overflow: 'hidden', marginBottom: '16px' }}>
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
@@ -131,13 +131,12 @@ export const RegisterPage = () => {
             size="large"
             shape="rectangular"
             text="signup_with"
-            width="400"
           />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-sage-border)' }} />
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', letterSpacing: '0.08em' }}>OR REGISTER WITH EMAIL</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>OR REGISTER WITH EMAIL</span>
           <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-sage-border)' }} />
         </div>
 
@@ -148,7 +147,7 @@ export const RegisterPage = () => {
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-forest-ink)', marginBottom: '8px' }}>
               CHOOSE ACCOUNT TYPE
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="responsive-grid-form">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, role: 'member' })}
@@ -158,6 +157,7 @@ export const RegisterPage = () => {
                   border: formData.role === 'member' ? '2px solid var(--color-forest-ink)' : '1px solid var(--color-sage-border)',
                   backgroundColor: formData.role === 'member' ? '#ffffff' : 'transparent',
                   color: 'var(--color-forest-ink)',
+
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.15s ease',
@@ -308,7 +308,7 @@ export const RegisterPage = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="responsive-grid-form">
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-forest-ink)', marginBottom: '6px' }}>
                 VENMO HANDLE (OPTIONAL)

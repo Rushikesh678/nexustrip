@@ -4,7 +4,12 @@ const Trip = require('../models/Trip');
 const Participant = require('../models/Participant');
 const Expense = require('../models/Expense');
 const Booking = require('../models/Booking');
+const ItineraryBlock = require('../models/ItineraryBlock');
 const AuditLog = require('../models/AuditLog');
+const LedgerEntry = require('../models/LedgerEntry');
+const Payment = require('../models/Payment');
+const Refund = require('../models/Refund');
+const Settlement = require('../models/Settlement');
 const auth = require('../middleware/auth');
 const { recalculateParticipantBalances } = require('../services/calculationService');
 
@@ -212,7 +217,8 @@ router.get('/:tripId', auth, async (req, res) => {
 
     const participants = await Participant.find({ trip_id: trip._id });
     const expenses = await Expense.find({ tripId: trip._id, status: { $ne: 'DELETED' } }).populate('payerId', 'name email');
-    const bookings = await Booking.find({ trip_id: trip._id });
+    const bookings = await Booking.find({ trip_id: trip._id, status: { $ne: 'cancelled' } });
+    const itineraryBlocks = await ItineraryBlock.find({ trip_id: trip._id }).lean();
 
     // Ensure balances are updated
     await recalculateParticipantBalances(trip._id);
@@ -232,6 +238,7 @@ router.get('/:tripId', auth, async (req, res) => {
       participants: updatedParticipants,
       expenses,
       bookings,
+      itineraryBlocks: itineraryBlocks || [],
       myParticipant,
       stats: {
         totalSpent: totalExpenseCost + totalBookingCost,
@@ -297,7 +304,7 @@ router.put('/:tripId', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/v1/trips/:tripId - Delete or cancel trip
+// DELETE /api/v1/trips/:tripId - Permanently delete entire trip
 router.delete('/:tripId', auth, async (req, res) => {
   try {
     const trip = await Trip.findById(req.params.tripId);
@@ -305,24 +312,28 @@ router.delete('/:tripId', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Trip not found.' });
     }
     if (trip.organizer_id.toString() !== req.user.userId) {
-      return res.status(403).json({ success: false, message: 'Only organizer can cancel/delete the trip.' });
+      return res.status(403).json({ success: false, message: 'Only the trip host can delete this trip.' });
     }
 
-    trip.status = 'cancelled';
-    await trip.save();
+    const tripId = trip._id;
 
-    await AuditLog.create({
-      tripId: trip._id,
-      action: 'TRIP_CANCELLED',
-      actorId: req.user.userId,
-      actorName: req.user.name,
-      target: { type: 'TRIP', id: trip._id.toString() },
-      reason: 'Trip cancelled by organizer'
-    });
+    // Permanently remove all trip-related collections and data
+    await Promise.all([
+      Participant.deleteMany({ trip_id: tripId }),
+      Expense.deleteMany({ tripId: tripId }),
+      Booking.deleteMany({ trip_id: tripId }),
+      AuditLog.deleteMany({ tripId: tripId }),
+      LedgerEntry.deleteMany({ trip_id: tripId }),
+      Payment.deleteMany({ trip_id: tripId }),
+      Refund.deleteMany({ trip_id: tripId }),
+      Settlement.deleteMany({ tripId: tripId }),
+      Trip.findByIdAndDelete(tripId)
+    ]);
 
-    res.json({ success: true, message: 'Trip marked as cancelled.', trip });
+    res.json({ success: true, message: `Trip "${trip.name}" and all associated records have been permanently deleted.` });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error cancelling trip.' });
+    console.error('Delete trip error:', err);
+    res.status(500).json({ success: false, message: 'Server error deleting trip.' });
   }
 });
 

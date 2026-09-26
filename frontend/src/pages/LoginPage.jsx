@@ -63,36 +63,36 @@ export const LoginPage = () => {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'var(--color-paper-cream)',
-      padding: '40px 24px',
+      padding: 'clamp(20px, 4vw, 40px) clamp(16px, 3vw, 24px)',
       position: 'relative'
     }}>
       <div className="card-cream" style={{ width: '100%', maxWidth: '460px', position: 'relative' }}>
         
         {/* Sticker Badge top corner */}
-        <div style={{ position: 'absolute', top: '-14px', right: '24px' }}>
+        <div style={{ position: 'absolute', top: '-14px', right: 'clamp(12px, 3vw, 24px)' }}>
           <span className="sticker-badge">AUTHORIZATION PASS</span>
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
-            width: '54px',
-            height: '54px',
+            width: '50px',
+            height: '50px',
             borderRadius: '14px',
             backgroundColor: 'var(--color-forest-ink)',
             color: 'var(--color-meadow)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '16px',
+            marginBottom: '14px',
             boxShadow: '0 4px 14px rgba(18, 35, 21, 0.2)'
           }}>
-            <Compass size={30} />
+            <Compass size={26} />
           </div>
-          <span className="eyebrow-label" style={{ display: 'block', marginBottom: '6px' }}>01 / SIGN IN</span>
-          <h2 style={{ fontSize: '36px', color: 'var(--color-forest-ink)', letterSpacing: '-0.02em' }}>
+          <span className="eyebrow-label" style={{ display: 'block', marginBottom: '4px' }}>01 / SIGN IN</span>
+          <h2 style={{ fontSize: 'clamp(26px, 5vw, 36px)', color: 'var(--color-forest-ink)', letterSpacing: '-0.02em' }}>
             WELCOME BACK
           </h2>
-          <p style={{ color: '#555555', fontSize: '14px', marginTop: '6px' }}>
+          <p style={{ color: '#555555', fontSize: '13px', marginTop: '4px' }}>
             Access your trip ledgers and active settlements
           </p>
         </div>
@@ -101,18 +101,18 @@ export const LoginPage = () => {
           <div style={{
             backgroundColor: '#fee2e2',
             color: '#b91c1c',
-            padding: '12px 16px',
+            padding: '12px 14px',
             borderRadius: '10px',
             fontSize: '13px',
             fontWeight: 600,
-            marginBottom: '20px',
+            marginBottom: '18px',
             border: '1px solid #fca5a5'
           }}>
             {error}
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%', maxWidth: '100%', overflow: 'hidden', marginBottom: '16px' }}>
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
@@ -120,15 +120,15 @@ export const LoginPage = () => {
             size="large"
             shape="rectangular"
             text="signin_with"
-            width="380"
           />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-sage-border)' }} />
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', letterSpacing: '0.08em' }}>OR SIGN IN WITH EMAIL</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>OR SIGN IN WITH EMAIL</span>
           <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-sage-border)' }} />
         </div>
+
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>

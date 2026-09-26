@@ -27,6 +27,7 @@ app.use('/api/v1/auth', require('./routes/authRoutes'));
 app.use('/api/v1/trips', require('./routes/tripRoutes'));
 app.use('/api/v1/trips/:tripId/participants', require('./routes/participantRoutes'));
 app.use('/api/v1/trips/:tripId/bookings', require('./routes/bookingRoutes'));
+app.use('/api/v1/trips/:tripId/itinerary', require('./routes/itineraryRoutes'));
 app.use('/api/v1/trips/:tripId/expenses', require('./routes/expenseRoutes'));
 app.use('/api/v1/receipts', require('./routes/expenseRoutes')); // receipt parse route
 app.use('/api/v1/trips/:tripId/payments', require('./routes/paymentRoutes'));
@@ -35,6 +36,7 @@ app.use('/api/v1/trips/:tripId/settlement', require('./routes/settlementRoutes')
 app.use('/api/v1/trips/:tripId/ledger', require('./routes/ledgerRoutes'));
 app.use('/api/v1/trips/:tripId/audit', require('./routes/auditRoutes'));
 app.use('/api/v1/trips/:tripId/report', require('./routes/reportRoutes'));
+app.use('/api/v1/trips/:tripId/recommendations', require('./routes/recommendationRoutes'));
 
 // Root Health Check Route
 app.get('/', (req, res) => {

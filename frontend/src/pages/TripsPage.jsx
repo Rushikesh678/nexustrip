@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Calendar, MapPin, IndianRupee, Users, ChevronRight, Sparkles, Compass, ShieldCheck, KeyRound, Copy, Check } from 'lucide-react';
+import { Plus, Calendar, MapPin, IndianRupee, Users, ChevronRight, Sparkles, Compass, ShieldCheck, KeyRound, Copy, Check, Trash2, AlertTriangle } from 'lucide-react';
 
 export const TripsPage = () => {
   const [trips, setTrips] = useState([]);
@@ -13,6 +13,8 @@ export const TripsPage = () => {
   const [joiningTrip, setJoiningTrip] = useState(false);
   const [tripFilter, setTripFilter] = useState('ALL'); // 'ALL' | 'HOSTED' | 'MEMBER'
   const [copiedCode, setCopiedCode] = useState('');
+  const [tripToDelete, setTripToDelete] = useState(null);
+  const [isDeletingTrip, setIsDeletingTrip] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     destination: '',
@@ -88,6 +90,22 @@ export const TripsPage = () => {
     setTimeout(() => setCopiedCode(''), 2000);
   };
 
+  const handleDeleteTrip = async () => {
+    if (!tripToDelete) return;
+    setIsDeletingTrip(true);
+    try {
+      const res = await api.deleteTrip(tripToDelete._id);
+      if (res.success) {
+        setTripToDelete(null);
+        fetchTrips();
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to delete trip');
+    } finally {
+      setIsDeletingTrip(false);
+    }
+  };
+
   const handleQuickSeedDemo = async () => {
     setSubmitting(true);
     try {
@@ -113,6 +131,7 @@ export const TripsPage = () => {
         // Add sample bookings & expenses
         await api.createBooking(tripId, {
           description: 'Grand Beach Resort Villa (4 Nights)',
+          location: 'Phuket, Thailand',
           type: 'accommodation',
           vendor_name: 'Grand Beach Resort',
           total_cost: 1600,
@@ -123,6 +142,7 @@ export const TripsPage = () => {
 
         await api.createBooking(tripId, {
           description: 'Private Island Catamaran Tour',
+          location: 'Phuket, Thailand',
           type: 'activity',
           vendor_name: 'Phuket Marine Excursions',
           total_cost: 600,
@@ -164,21 +184,21 @@ export const TripsPage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: 'var(--color-paper-cream)', minHeight: 'calc(100vh - 68px)', padding: '48px 24px' }}>
+    <div style={{ backgroundColor: 'var(--color-paper-cream)', minHeight: 'calc(100vh - 68px)', padding: 'clamp(20px, 4vw, 48px) clamp(16px, 3vw, 24px)' }}>
       <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto' }}>
         
         {/* Page Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '18px', marginBottom: '28px' }}>
           <div>
             <span className="eyebrow-label">01 / EXPEDITIONS & TRIP LEDGERS</span>
-            <h1 className="deacon-display" style={{ fontSize: 'clamp(36px, 5vw, 64px)', color: 'var(--color-forest-ink)', marginTop: '8px' }}>
+            <h1 className="deacon-display" style={{ fontSize: 'clamp(30px, 5vw, 64px)', color: 'var(--color-forest-ink)', marginTop: '6px' }}>
               MY GROUP TRIPS
             </h1>
-            <p style={{ color: '#555555', fontSize: '16px', marginTop: '4px' }}>
+            <p style={{ color: '#555555', fontSize: '15px', marginTop: '4px' }}>
               Double-entry debits, mid-trip prorated balances, and zero-conflict settlements
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: 'auto' }}>
             <button className="btn-ghost-cream" onClick={handleQuickSeedDemo} disabled={submitting}>
               <Sparkles size={16} color="var(--color-forest-ink)" /> LOAD DEMO TRIP
             </button>
@@ -193,7 +213,7 @@ export const TripsPage = () => {
 
         {/* Filter Tabs */}
         {!loading && trips.length > 0 && (
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
             <button
               onClick={() => setTripFilter('ALL')}
               className={tripFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}
@@ -217,33 +237,33 @@ export const TripsPage = () => {
 
         {/* Loading state */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--color-moss-gray)', fontWeight: 700 }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--color-moss-gray)', fontWeight: 700 }}>
             Loading your trip ledgers...
           </div>
         ) : trips.length === 0 ? (
           /* Empty State */
-          <div className="card-cream" style={{ textAlign: 'center', padding: '80px 24px', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: '-14px', right: '32px' }}>
+          <div className="card-cream" style={{ textAlign: 'center', padding: 'clamp(40px, 8vw, 80px) clamp(16px, 4vw, 24px)', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: '-14px', right: 'clamp(16px, 4vw, 32px)' }}>
               <span className="sticker-badge">GET STARTED</span>
             </div>
             <div style={{
-              width: '64px',
-              height: '64px',
+              width: '60px',
+              height: '60px',
               borderRadius: '16px',
               backgroundColor: 'var(--color-forest-ink)',
               color: 'var(--color-meadow)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '20px'
+              marginBottom: '18px'
             }}>
-              <Compass size={36} />
+              <Compass size={32} />
             </div>
-            <h3 style={{ fontSize: '28px', color: 'var(--color-forest-ink)', marginBottom: '12px' }}>NO ACTIVE EXPEDITIONS YET</h3>
-            <p style={{ color: '#555555', maxWidth: '500px', margin: '0 auto 28px auto', fontSize: '15px', lineHeight: 1.5 }}>
+            <h3 style={{ fontSize: 'clamp(22px, 4vw, 28px)', color: 'var(--color-forest-ink)', marginBottom: '10px' }}>NO ACTIVE EXPEDITIONS YET</h3>
+            <p style={{ color: '#555555', maxWidth: '500px', margin: '0 auto 24px auto', fontSize: '14px', lineHeight: 1.5 }}>
               Create your first group trip, enter an invite code from your organizer, or load our pre-populated demo trip to experience transparent double-entry expense sharing and automated settlement.
             </p>
-            <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button className="btn-meadow" onClick={() => setShowModal(true)}>
                 <Plus size={18} /> CREATE FIRST TRIP
               </button>
@@ -257,7 +277,8 @@ export const TripsPage = () => {
           </div>
         ) : (
           /* Trip Cards Grid */
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '28px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '20px' }}>
+
             {trips
               .filter(trip => {
                 if (tripFilter === 'HOSTED') return trip.isOrganizer;
@@ -301,9 +322,37 @@ export const TripsPage = () => {
                         <span className="badge badge-primary">🎒 MEMBER</span>
                       )}
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.2)', padding: '4px 10px', borderRadius: '6px' }}>
-                      {trip.currency || 'INR'} ₹{trip.budget?.toLocaleString() || '0'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.2)', padding: '4px 10px', borderRadius: '6px' }}>
+                        {trip.currency || 'INR'} ₹{trip.budget?.toLocaleString() || '0'}
+                      </span>
+                      {trip.isOrganizer && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTripToDelete(trip);
+                          }}
+                          style={{
+                            background: '#fee2e2',
+                            border: '1px solid #fca5a5',
+                            color: '#dc2626',
+                            borderRadius: '6px',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            transition: 'all 0.15s ease'
+                          }}
+                          title="Delete Entire Trip"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <h3 style={{ fontSize: '26px', marginBottom: '10px', color: 'var(--color-forest-ink)', lineHeight: 0.9 }}>
@@ -508,7 +557,7 @@ export const TripsPage = () => {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="responsive-grid-form">
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-forest-ink)', marginBottom: '6px' }}>
                       START DATE *
@@ -553,7 +602,7 @@ export const TripsPage = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="responsive-grid-form">
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-forest-ink)', marginBottom: '6px' }}>
                       CURRENCY
@@ -615,6 +664,108 @@ export const TripsPage = () => {
           </div>
         )}
 
+        {/* Delete Trip Confirmation Modal */}
+        {tripToDelete && (
+          <div className="modal-overlay" onClick={() => !isDeletingTrip && setTripToDelete(null)}>
+            <div className="modal-dialog" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626' }}>
+                  <AlertTriangle size={24} />
+                  <h3 style={{ fontSize: '20px', fontWeight: 900, margin: 0 }}>Delete Entire Trip</h3>
+                </div>
+                <button
+                  onClick={() => !isDeletingTrip && setTripToDelete(null)}
+                  style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: 'var(--color-moss-gray)' }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ backgroundColor: '#fef2f2', border: '1.5px solid #fca5a5', padding: '14px', borderRadius: '10px', marginBottom: '18px' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#991b1b', lineHeight: 1.5 }}>
+                  <strong>CRITICAL WARNING:</strong> You are about to permanently delete <strong>"{tripToDelete.name}"</strong>.
+                  This action cannot be undone. All recorded expenses, group bookings, side quests, audit records, ledger entries, and final settlements will be permanently erased.
+                </p>
+              </div>
+
+              <DeleteTripNameConfirmForm
+                trip={tripToDelete}
+                onConfirm={handleDeleteTrip}
+                onCancel={() => setTripToDelete(null)}
+                isDeleting={isDeletingTrip}
+              />
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+/* DELETE TRIP NAME CONFIRM FORM */
+const DeleteTripNameConfirmForm = ({ trip, onConfirm, onCancel, isDeleting }) => {
+  const [confirmInput, setConfirmInput] = useState('');
+  const isMatch = confirmInput.trim() === trip.name.trim();
+
+  return (
+    <div>
+      <div style={{ marginBottom: '20px' }}>
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--color-forest-ink)', marginBottom: '6px' }}>
+          To confirm deletion, please type the trip name <strong style={{ color: '#dc2626' }}>{trip.name}</strong> below:
+        </label>
+        <input
+          type="text"
+          value={confirmInput}
+          onChange={(e) => setConfirmInput(e.target.value)}
+          placeholder={`Type "${trip.name}" here`}
+          style={{
+            width: '100%',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            border: `2px solid ${isMatch ? '#dc2626' : 'var(--color-sage-border)'}`,
+            fontSize: '14px',
+            fontWeight: 600,
+            backgroundColor: '#ffffff',
+            outline: 'none',
+            color: 'var(--color-forest-ink)'
+          }}
+        />
+        {confirmInput && !isMatch && (
+          <span style={{ fontSize: '11px', color: '#dc2626', marginTop: '4px', display: 'block' }}>
+            Name doesn't match yet. Please type the exact trip name.
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={onCancel}
+          disabled={isDeleting}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={!isMatch || isDeleting}
+          style={{
+            backgroundColor: isMatch ? '#dc2626' : '#9ca3af',
+            color: '#ffffff',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            border: 'none',
+            fontWeight: 800,
+            fontSize: '13px',
+            letterSpacing: '0.05em',
+            cursor: isMatch && !isDeleting ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {isDeleting ? 'DELETING EXPEDITION...' : 'I UNDERSTAND, DELETE TRIP'}
+        </button>
       </div>
     </div>
   );

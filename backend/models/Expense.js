@@ -37,6 +37,8 @@ const ExpenseSchema = new mongoose.Schema({
   aiConfidence: { type: Number, default: 0 },
   isSideQuest: { type: Boolean, default: false },
   sideQuestTitle: { type: String, default: '' },
+  itineraryBlockId: { type: mongoose.Schema.Types.ObjectId, ref: 'ItineraryBlock', default: null },
+  subgroupTag: { type: String, default: '' }, // e.g. "Table 1", "Table 2", "Room A"
 
   participants: [ExpenseParticipantSchema],
 

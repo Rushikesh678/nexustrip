@@ -19,12 +19,16 @@ router.post('/', auth, async (req, res) => {
     const {
       description, merchant, category, amount, currency, date,
       payerId, participants, splitMethod, receiptUrl, aiParsed, aiConfidence,
-      isSideQuest, sideQuestTitle
+      isSideQuest, sideQuestTitle, itineraryBlockId, subgroupTag
     } = req.body;
 
     const trip = await Trip.findById(tripId);
     if (!trip) {
       return res.status(404).json({ success: false, message: 'Trip not found.' });
+    }
+
+    if (trip.organizer_id.toString() !== req.user.userId && trip.settings && trip.settings.allowMemberExpenses === false) {
+      return res.status(403).json({ success: false, message: 'The host has disabled members from adding expenses to this trip.' });
     }
 
     if (!description || amount === undefined || !payerId) {
@@ -116,6 +120,8 @@ router.post('/', auth, async (req, res) => {
       aiConfidence: aiConfidence || 0,
       isSideQuest: !!isSideQuest,
       sideQuestTitle: sideQuestTitle || '',
+      itineraryBlockId: itineraryBlockId || null,
+      subgroupTag: subgroupTag || '',
       participants: formattedParticipants,
       status: 'POSTED',
       approvalStatus: trip.settings?.requireHostApproval ? 'PENDING_APPROVAL' : 'APPROVED'
@@ -190,6 +196,25 @@ router.put('/:eid', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Expense not found.' });
     }
 
+    const trip = await Trip.findById(tripId);
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'Trip not found.' });
+    }
+
+    const isHost = trip.organizer_id.toString() === req.user.userId;
+    if (!isHost) {
+      if (!expense.isSideQuest) {
+        return res.status(403).json({ success: false, message: 'Only the trip host can edit general expenses. Members can only edit their own side quests.' });
+      }
+      const memberPart = await Participant.findOne({
+        trip_id: tripId,
+        $or: [{ user_id: req.user.userId }, { email: req.user.email.toLowerCase() }]
+      });
+      if (!memberPart) {
+        return res.status(403).json({ success: false, message: 'You are not a participant in this trip.' });
+      }
+    }
+
     const { description, merchant, category, amount, currency, date, payerId, participants, splitMethod, isSideQuest, sideQuestTitle } = req.body;
     const changes = [];
 
@@ -216,6 +241,8 @@ router.put('/:eid', auth, async (req, res) => {
     if (date) expense.date = new Date(date);
     if (isSideQuest !== undefined) expense.isSideQuest = !!isSideQuest;
     if (sideQuestTitle !== undefined) expense.sideQuestTitle = sideQuestTitle || '';
+    if (itineraryBlockId !== undefined) expense.itineraryBlockId = itineraryBlockId || null;
+    if (subgroupTag !== undefined) expense.subgroupTag = subgroupTag || '';
 
     if (participants && Array.isArray(participants)) {
       changes.push({ field: 'participants', before: expense.participants.length, after: participants.length });
@@ -282,6 +309,25 @@ router.delete('/:eid', auth, async (req, res) => {
     const expense = await Expense.findOne({ _id: eid, tripId });
     if (!expense) {
       return res.status(404).json({ success: false, message: 'Expense not found.' });
+    }
+
+    const trip = await Trip.findById(tripId);
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'Trip not found.' });
+    }
+
+    const isHost = trip.organizer_id.toString() === req.user.userId;
+    if (!isHost) {
+      if (!expense.isSideQuest) {
+        return res.status(403).json({ success: false, message: 'Only the trip host can delete general expenses. Members can only delete their own side quests.' });
+      }
+      const memberPart = await Participant.findOne({
+        trip_id: tripId,
+        $or: [{ user_id: req.user.userId }, { email: req.user.email.toLowerCase() }]
+      });
+      if (!memberPart) {
+        return res.status(403).json({ success: false, message: 'You are not a participant in this trip.' });
+      }
     }
 
     expense.status = 'DELETED';
