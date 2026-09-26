@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Receipt, CalendarCheck, Users, BookOpen, Scale, FileText, Settings,
   Plus, Upload, DollarSign, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownLeft,
-  Sparkles, Download, Trash2, Edit, UserCheck, ShieldAlert, ArrowRight, RefreshCw, Layers
+  Sparkles, Download, Trash2, Edit, UserCheck, ShieldAlert, ArrowRight, RefreshCw, Layers,
+  KeyRound, Copy, Check, Smartphone, CreditCard, Banknote, ShieldCheck, Compass, Info
 } from 'lucide-react';
 
 export const TripWorkspace = () => {
@@ -17,12 +18,15 @@ export const TripWorkspace = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [tripData, setTripData] = useState(null);
+  const [copiedInvite, setCopiedInvite] = useState(false);
+  const [registeredMembers, setRegisteredMembers] = useState([]);
 
   // Modals state
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showAddBookingModal, setShowAddBookingModal] = useState(false);
   const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
+  const [addParticipantMode, setAddParticipantMode] = useState('registered'); // 'registered' | 'manual'
   const [showDepartModal, setShowDepartModal] = useState(false);
   const [selectedParticipantForDepart, setSelectedParticipantForDepart] = useState(null);
 
@@ -42,6 +46,8 @@ export const TripWorkspace = () => {
     amount: '',
     payerId: '',
     splitMethod: 'EQUAL',
+    isSideQuest: false,
+    sideQuestTitle: '',
     selectedParticipantIds: []
   });
 
@@ -64,12 +70,21 @@ export const TripWorkspace = () => {
     name: '',
     email: '',
     cost_tier: 'STANDARD',
-    tier_multiplier: 1.0
+    tier_multiplier: 1.0,
+    user_id: ''
   });
 
   const loadTripData = async () => {
     try {
-      const res = await api.getTripById(tripId);
+      const [res, membersRes] = await Promise.all([
+        api.getTripById(tripId),
+        api.getMembers().catch(() => ({ success: false, members: [] }))
+      ]);
+
+      if (membersRes && membersRes.success) {
+        setRegisteredMembers(membersRes.members || []);
+      }
+
       if (res.success) {
         setTripData(res);
         if (res.participants && res.participants.length > 0 && !expenseForm.payerId) {
@@ -129,6 +144,8 @@ export const TripWorkspace = () => {
         payerId: expenseForm.payerId,
         splitMethod: expenseForm.splitMethod,
         participants: participantObjs,
+        isSideQuest: !!expenseForm.isSideQuest,
+        sideQuestTitle: expenseForm.sideQuestTitle || '',
         aiParsed: !!parsedData,
         aiConfidence: parsedData ? parsedData.confidence : 0
       });
@@ -137,7 +154,14 @@ export const TripWorkspace = () => {
         setShowAddExpenseModal(false);
         setWizardStep(1);
         setParsedData(null);
-        setExpenseForm(prev => ({ ...prev, description: '', merchant: '', amount: '' }));
+        setExpenseForm(prev => ({
+          ...prev,
+          description: '',
+          merchant: '',
+          amount: '',
+          isSideQuest: false,
+          sideQuestTitle: ''
+        }));
         loadTripData();
       }
     } catch (err) {
@@ -265,11 +289,43 @@ export const TripWorkspace = () => {
       {/* Workspace Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
             <span className="eyebrow-label">EXPEDITION WORKSPACE</span>
             <span className={trip.status === 'active' ? 'sticker-badge' : 'sticker-badge-navy'}>
               {trip.status.replace('_', ' ')}
             </span>
+            <span className={trip.isOrganizer ? 'sticker-badge' : 'sticker-badge-navy'} style={{ fontSize: '11px', padding: '3px 10px' }}>
+              {trip.isOrganizer ? '👑 TRIP HOST' : '🎒 MEMBER'}
+            </span>
+            {trip.inviteCode && (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#ffffff',
+                border: '1.5px solid var(--color-sage-border)',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+              }}>
+                <KeyRound size={14} color="var(--color-forest-ink)" />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', textTransform: 'uppercase' }}>INVITE CODE:</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '13px', letterSpacing: '0.12em', color: 'var(--color-forest-ink)' }}>{trip.inviteCode}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(trip.inviteCode);
+                    setCopiedInvite(true);
+                    setTimeout(() => setCopiedInvite(false), 2000);
+                  }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', color: 'var(--color-forest-ink)' }}
+                  title="Copy Trip Invite Code"
+                >
+                  {copiedInvite ? <Check size={14} color="#15803d" /> : <Copy size={14} />}
+                </button>
+                {copiedInvite && <span style={{ fontSize: '10px', color: '#15803d', fontWeight: 700 }}>Copied!</span>}
+              </div>
+            )}
           </div>
           <h1 className="deacon-display" style={{ fontSize: 'clamp(32px, 4vw, 56px)', color: 'var(--color-forest-ink)' }}>
             {trip.name}
@@ -323,14 +379,23 @@ export const TripWorkspace = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '32px', fontSize: '14px' }}>
+        <div style={{ display: 'flex', gap: '28px', fontSize: '14px', flexWrap: 'wrap' }}>
           <div>
             <span style={{ color: 'var(--color-moss-gray)', display: 'block', fontSize: '12px', textTransform: 'uppercase', fontWeight: 600 }}>Total You Paid</span>
             <strong style={{ fontSize: '20px', color: 'var(--color-forest-ink)', fontFamily: 'var(--font-deacon)' }}>₹{(myParticipant?.total_paid || 0).toFixed(2)}</strong>
           </div>
-          <div style={{ borderLeft: '1px dashed var(--color-sage-border)', paddingLeft: '32px' }}>
+          <div style={{ borderLeft: '1px dashed var(--color-sage-border)', paddingLeft: '28px' }}>
             <span style={{ color: 'var(--color-moss-gray)', display: 'block', fontSize: '12px', textTransform: 'uppercase', fontWeight: 600 }}>Your Share Owed</span>
             <strong style={{ fontSize: '20px', color: 'var(--color-forest-ink)', fontFamily: 'var(--font-deacon)' }}>₹{(myParticipant?.total_owed || 0).toFixed(2)}</strong>
+          </div>
+          <div style={{ borderLeft: '1px dashed var(--color-sage-border)', paddingLeft: '28px' }}>
+            <span style={{ color: 'var(--color-moss-gray)', display: 'block', fontSize: '12px', textTransform: 'uppercase', fontWeight: 600 }}>Side Quest Spends</span>
+            <strong style={{ fontSize: '20px', color: '#854d0e', fontFamily: 'var(--font-deacon)' }}>
+              ₹{expenses.filter(e => e.isSideQuest && e.participants?.some(p => (p.memberId?._id || p.memberId) === myParticipant?._id)).reduce((sum, e) => {
+                const sp = e.participants?.find(p => (p.memberId?._id || p.memberId) === myParticipant?._id);
+                return sum + (sp?.share || 0);
+              }, 0).toFixed(2)}
+            </strong>
           </div>
         </div>
       </div>
@@ -494,8 +559,8 @@ export const TripWorkspace = () => {
 
       {/* AI Receipt Parser Modal */}
       {showReceiptModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '520px', borderRadius: '16px', border: '2px solid var(--color-meadow-border)' }}>
+        <div className="modal-overlay" onClick={() => setShowReceiptModal(false)}>
+          <div className="modal-dialog" style={{ maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={20} style={{ color: 'var(--color-primary)' }} /> Groq AI Bill & Receipt Parser
@@ -631,8 +696,8 @@ export const TripWorkspace = () => {
 
       {/* Add Booking Modal */}
       {showAddBookingModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '520px', borderRadius: '16px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay" onClick={() => setShowAddBookingModal(false)}>
+          <div className="modal-dialog" style={{ maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Create Locked Group Booking</h3>
               <button onClick={() => setShowAddBookingModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>×</button>
@@ -754,41 +819,119 @@ export const TripWorkspace = () => {
 
       {/* Add Participant Modal */}
       {showAddParticipantModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '440px', borderRadius: '16px' }}>
+        <div className="modal-overlay" onClick={() => setShowAddParticipantModal(false)}>
+          <div className="modal-dialog" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Add Trip Participant</h3>
-              <button onClick={() => setShowAddParticipantModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>×</button>
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-forest-ink)' }}>Add Trip Participant</h3>
+                <p style={{ fontSize: '12px', color: 'var(--color-moss-gray)', marginTop: '2px' }}>Add members to track shared & side-quest spends</p>
+              </div>
+              <button onClick={() => setShowAddParticipantModal(false)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: 'var(--color-muted)' }}>×</button>
+            </div>
+
+            {/* Mode Selector Tabs */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setAddParticipantMode('registered')}
+                style={{
+                  flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px',
+                  backgroundColor: addParticipantMode === 'registered' ? '#ffffff' : 'transparent',
+                  boxShadow: addParticipantMode === 'registered' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  color: addParticipantMode === 'registered' ? 'var(--color-forest-ink)' : 'var(--color-muted)'
+                }}
+              >
+                🎒 Pick Member Account ({registeredMembers.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddParticipantMode('manual');
+                  setParticipantForm(prev => ({ ...prev, user_id: '' }));
+                }}
+                style={{
+                  flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px',
+                  backgroundColor: addParticipantMode === 'manual' ? '#ffffff' : 'transparent',
+                  boxShadow: addParticipantMode === 'manual' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  color: addParticipantMode === 'manual' ? 'var(--color-forest-ink)' : 'var(--color-muted)'
+                }}
+              >
+                ✉️ New Guest / Email
+              </button>
             </div>
 
             <form onSubmit={handleAddParticipant} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Participant Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Sarah Connor"
-                  value={participantForm.name}
-                  onChange={(e) => setParticipantForm({ ...participantForm, name: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px' }}
-                />
-              </div>
+              {addParticipantMode === 'registered' ? (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-forest-ink)' }}>Select Registered Member Account *</label>
+                  <select
+                    required
+                    value={participantForm.user_id || ''}
+                    onChange={(e) => {
+                      const selId = e.target.value;
+                      const found = registeredMembers.find(m => m._id === selId);
+                      if (found) {
+                        setParticipantForm(prev => ({
+                          ...prev,
+                          user_id: found._id,
+                          name: found.name,
+                          email: found.email
+                        }));
+                      } else {
+                        setParticipantForm(prev => ({ ...prev, user_id: '', name: '', email: '' }));
+                      }
+                    }}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
+                  >
+                    <option value="">-- Choose Registered Traveler --</option>
+                    {registeredMembers.map(m => {
+                      const isAlready = participants.some(p => (p.user_id && p.user_id === m._id) || p.email.toLowerCase() === m.email.toLowerCase());
+                      return (
+                        <option key={m._id} value={m._id} disabled={isAlready}>
+                          {m.name} ({m.email}) {m.role === 'member' ? '• 🎒 Member' : '• 👑 Host'} {isAlready ? '[Already in Trip]' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="sarah@example.com"
-                  value={participantForm.email}
-                  onChange={(e) => setParticipantForm({ ...participantForm, email: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px' }}
-                />
-              </div>
+                  {participantForm.user_id && (
+                    <div style={{ marginTop: '10px', padding: '10px 12px', backgroundColor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', fontSize: '12px', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircle2 size={16} color="#15803d" />
+                      <span>Ready to link: <strong>{participantForm.name}</strong> ({participantForm.email})</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-forest-ink)' }}>Participant Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Sarah Connor"
+                      value={participantForm.name}
+                      onChange={(e) => setParticipantForm({ ...participantForm, name: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-forest-ink)' }}>Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="sarah@example.com"
+                      value={participantForm.email}
+                      onChange={(e) => setParticipantForm({ ...participantForm, email: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
+                    />
+                  </div>
+                </>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Cost Tier</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-forest-ink)' }}>Cost Tier</label>
                   <select
                     value={participantForm.cost_tier}
                     onChange={(e) => {
@@ -796,7 +939,7 @@ export const TripWorkspace = () => {
                       const mult = tier === 'STUDENT' ? 0.75 : tier === 'SPONSOR' ? 1.25 : 1.0;
                       setParticipantForm({ ...participantForm, cost_tier: tier, tier_multiplier: mult });
                     }}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
                   >
                     <option value="STANDARD">Standard (1.0x)</option>
                     <option value="STUDENT">Student / Discount (0.75x)</option>
@@ -804,20 +947,20 @@ export const TripWorkspace = () => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Multiplier</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-forest-ink)' }}>Multiplier</label>
                   <input
                     type="number"
                     step="0.05"
                     value={participantForm.tier_multiplier}
                     onChange={(e) => setParticipantForm({ ...participantForm, tier_multiplier: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
                 <button type="button" className="btn-secondary" onClick={() => setShowAddParticipantModal(false)}>Cancel</button>
-                <button type="submit" className="btn-primary">Add Member</button>
+                <button type="submit" className="btn-primary">Add Member to Trip</button>
               </div>
             </form>
           </div>
@@ -826,10 +969,10 @@ export const TripWorkspace = () => {
 
       {/* Early Departure Recalculation Modal */}
       {showDepartModal && selectedParticipantForDepart && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '440px', borderRadius: '16px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Process Early Departure</h3>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginBottom: '16px' }}>
+        <div className="modal-overlay" onClick={() => setShowDepartModal(false)}>
+          <div className="modal-dialog" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px', color: 'var(--color-forest-ink)' }}>Process Early Departure</h3>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginBottom: '16px', lineHeight: 1.5 }}>
               Mark <strong>{selectedParticipantForDepart.name}</strong> as departing today. The system will automatically recalculate future bookings and adjust group cost allocations.
             </p>
 
@@ -851,11 +994,14 @@ export const TripWorkspace = () => {
 
 /* 1. OVERVIEW DASHBOARD TAB */
 const DashboardTab = ({ trip, stats, participants, expenses, bookings, onAddExpense, onAddBooking, onOpenSettlement }) => {
+  const sideQuestExpenses = expenses.filter(e => e.isSideQuest);
+  const totalSideQuestSpend = sideQuestExpenses.reduce((sum, e) => sum + e.amount, 0);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
       {/* Top Quick Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
         <div className="card" style={{ padding: '20px' }}>
           <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Total Spent So Far</span>
           <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-ink)', marginTop: '4px' }}>
@@ -891,6 +1037,16 @@ const DashboardTab = ({ trip, stats, participants, expenses, bookings, onAddExpe
           </div>
           <span style={{ fontSize: '12px', color: 'var(--color-success)', marginTop: '4px', display: 'block' }}>
             All confirmed & active
+          </span>
+        </div>
+
+        <div className="card" style={{ padding: '20px', borderLeft: '4px solid #eab308' }}>
+          <span style={{ fontSize: '13px', color: '#854d0e', fontWeight: 700 }}>Side Quest Spends</span>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-ink)', marginTop: '4px' }}>
+            ₹{totalSideQuestSpend.toFixed(2)}
+          </div>
+          <span style={{ fontSize: '12px', color: '#a16207', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+            🎮 {sideQuestExpenses.length} Sub-Group Adventures
           </span>
         </div>
 
@@ -933,7 +1089,7 @@ const DashboardTab = ({ trip, stats, participants, expenses, bookings, onAddExpe
               <CheckCircle2 size={16} /> {bookings.length} Group bookings locked with vendors
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-warning)' }}>
-              <AlertTriangle size={16} /> {expenses.length} Expenses logged. Final settlement ready at trip end.
+              <AlertTriangle size={16} /> {expenses.length} Expenses logged ({sideQuestExpenses.length} side quests)
             </div>
           </div>
         </div>
@@ -958,7 +1114,14 @@ const DashboardTab = ({ trip, stats, participants, expenses, bookings, onAddExpe
             {expenses.slice(0, 5).map(exp => (
               <div key={exp._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid var(--color-border)', borderRadius: '8px', backgroundColor: '#ffffff' }}>
                 <div>
-                  <strong style={{ fontSize: '15px', color: 'var(--color-ink)' }}>{exp.description}</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '15px', color: 'var(--color-ink)' }}>{exp.description}</strong>
+                    {exp.isSideQuest && (
+                      <span className="badge badge-warning" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontSize: '10px' }}>
+                        🎮 SIDE QUEST
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
                     Paid by {exp.payerId?.name || 'User'} • {new Date(exp.date).toLocaleDateString()}
                   </div>
@@ -983,7 +1146,9 @@ const ExpensesTab = ({ expenses, participants, onAddExpense, onOpenReceiptModal,
 
   const filteredExpenses = filterCategory === 'ALL'
     ? expenses
-    : expenses.filter(e => e.category === filterCategory);
+    : filterCategory === 'SIDE_QUESTS'
+      ? expenses.filter(e => e.isSideQuest)
+      : expenses.filter(e => e.category === filterCategory && !e.isSideQuest);
 
   const handleDeleteExpense = async (eid) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
@@ -995,15 +1160,15 @@ const ExpensesTab = ({ expenses, participants, onAddExpense, onOpenReceiptModal,
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {['ALL', 'FOOD', 'ACCOMMODATION', 'TRANSPORT', 'ACTIVITY', 'OTHER'].map(cat => (
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {['ALL', 'SIDE_QUESTS', 'FOOD', 'ACCOMMODATION', 'TRANSPORT', 'ACTIVITY', 'OTHER'].map(cat => (
             <button
               key={cat}
               onClick={() => setFilterCategory(cat)}
               className={filterCategory === cat ? 'btn-primary' : 'btn-secondary'}
               style={{ fontSize: '13px', padding: '6px 14px' }}
             >
-              {cat}
+              {cat === 'SIDE_QUESTS' ? '🎮 Side Quests' : cat}
             </button>
           ))}
         </div>
@@ -1041,8 +1206,20 @@ const ExpensesTab = ({ expenses, participants, onAddExpense, onOpenReceiptModal,
               filteredExpenses.map(exp => (
                 <tr key={exp._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td style={{ padding: '14px 20px' }}>
-                    <strong style={{ color: 'var(--color-ink)' }}>{exp.description}</strong>
-                    {exp.merchant && <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{exp.merchant}</div>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <strong style={{ color: 'var(--color-ink)' }}>{exp.description}</strong>
+                      {exp.isSideQuest && (
+                        <span className="badge badge-warning" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontSize: '11px', padding: '2px 8px' }}>
+                          🎮 SIDE QUEST: {exp.sideQuestTitle || 'Sub-Group'}
+                        </span>
+                      )}
+                    </div>
+                    {exp.merchant && <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>{exp.merchant}</div>}
+                    {exp.isSideQuest && (
+                      <div style={{ fontSize: '11px', color: '#854d0e', marginTop: '4px', fontWeight: 600 }}>
+                        Split among {exp.participants?.length || 0} crew members ({exp.participants?.map(p => p.memberId?.name || 'Member').join(', ')})
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '14px 20px' }}>
                     <span className="badge badge-primary">{exp.category}</span>
@@ -1161,12 +1338,19 @@ const PeopleTab = ({ participants, trip, onAddParticipant, onDepartParticipant, 
           </thead>
           <tbody>
             {participants.map(p => {
-              const net = (p.total_owed || 0) - (p.total_paid || 0);
+              const balance = (p.total_paid || 0) - (p.total_owed || 0);
               return (
                 <tr key={p._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td style={{ padding: '14px 20px' }}>
-                    <strong style={{ color: 'var(--color-ink)' }}>{p.name}</strong>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{p.email}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ color: 'var(--color-ink)' }}>{p.name}</strong>
+                      {p.user_id && (
+                        <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          🎒 MEMBER
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>{p.email}</div>
                   </td>
                   <td style={{ padding: '14px 20px' }}>
                     <span className={`badge ${p.status === 'active' || p.status === 'confirmed' ? 'badge-success' : p.status === 'departed' ? 'badge-warning' : 'badge-danger'}`}>
@@ -1178,8 +1362,20 @@ const PeopleTab = ({ participants, trip, onAddParticipant, onDepartParticipant, 
                   </td>
                   <td style={{ padding: '14px 20px', fontWeight: 600 }}>₹{(p.total_paid || 0).toFixed(2)}</td>
                   <td style={{ padding: '14px 20px', fontWeight: 600 }}>₹{(p.total_owed || 0).toFixed(2)}</td>
-                  <td style={{ padding: '14px 20px', fontWeight: 700, color: net > 0 ? 'var(--color-danger)' : net < 0 ? 'var(--color-success)' : 'var(--color-ink)' }}>
-                    {net > 0 ? `Owes ₹${net.toFixed(2)}` : net < 0 ? `Owed ₹${Math.abs(net).toFixed(2)}` : 'Settled'}
+                  <td style={{ padding: '14px 20px' }}>
+                    {balance > 0.005 ? (
+                      <span className="badge badge-success" style={{ fontSize: '12px', fontWeight: 700 }}>
+                        + ₹{balance.toFixed(2)} (Owed)
+                      </span>
+                    ) : balance < -0.005 ? (
+                      <span className="badge badge-danger" style={{ fontSize: '12px', fontWeight: 700 }}>
+                        - ₹{Math.abs(balance).toFixed(2)} (Owes)
+                      </span>
+                    ) : (
+                      <span className="badge" style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '12px', fontWeight: 600 }}>
+                        Settled (₹0.00)
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: '14px 20px', textAlign: 'right' }}>
                     {p.status !== 'departed' && (
@@ -1291,6 +1487,9 @@ const LedgerTab = ({ tripId, participants }) => {
 const SettlementTab = ({ tripId, trip, participants, onRefresh }) => {
   const [settlement, setSettlement] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [settleModalTx, setSettleModalTx] = useState(null);
+  const [settleMethod, setSettleMethod] = useState('upi'); // 'upi' | 'cash' | 'bank'
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   const fetchSettlement = async () => {
     try {
@@ -1321,17 +1520,20 @@ const SettlementTab = ({ tripId, trip, participants, onRefresh }) => {
     }
   };
 
-  const handleRecordPayment = async (tx) => {
+  const handleRecordPayment = async (tx, method = 'upi') => {
     try {
+      const fromId = tx.from_participant?._id || tx.from_participant;
+      const toId = tx.to_participant?._id || tx.to_participant;
+
       const res = await api.recordSettlementPayment(tripId, {
         transaction_id: tx._id,
-        from_participant: tx.from_participant._id,
-        to_participant: tx.to_participant._id,
+        from_participant: fromId,
+        to_participant: toId,
         amount: tx.amount,
-        payment_method: 'venmo'
+        payment_method: method
       });
       if (res.success) {
-        confetti({ particleCount: 50, spread: 50 });
+        confetti({ particleCount: 75, spread: 60 });
         fetchSettlement();
         onRefresh();
       }
@@ -1340,7 +1542,7 @@ const SettlementTab = ({ tripId, trip, participants, onRefresh }) => {
     }
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '40px' }}>Calculating Greedy Settlement Matrix...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-muted)' }}>Calculating Greedy Settlement Matrix...</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -1348,28 +1550,28 @@ const SettlementTab = ({ tripId, trip, participants, onRefresh }) => {
       {/* Top Settlement Summary Card */}
       <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Automated Settlement Engine</h3>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-forest-ink)' }}>Automated Settlement Engine</h3>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-            Greedy algorithm minimizes transaction count across group members.
+            Greedy bipartite algorithm resolves all debts in the absolute minimum number of peer transactions.
           </p>
         </div>
 
-        <button className="btn-primary" onClick={handleFinalize} style={{ padding: '12px 24px', fontSize: '15px' }}>
-          Finalize Settlement & Lock
+        <button className="btn-primary" onClick={handleFinalize} style={{ padding: '12px 24px', fontSize: '14px', fontWeight: 800 }}>
+          Recalculate & Finalize Settlements
         </button>
       </div>
 
       {/* Net Balances Table */}
       <div className="card">
-        <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Participant Net Position Summary</h4>
+        <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: 'var(--color-forest-ink)' }}>Participant Net Position Summary</h4>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
                 <th style={{ padding: '12px 16px' }}>Participant</th>
-                <th style={{ padding: '12px 16px' }}>Total Paid</th>
-                <th style={{ padding: '12px 16px' }}>Total Owed</th>
-                <th style={{ padding: '12px 16px' }}>Net Position</th>
+                <th style={{ padding: '12px 16px' }}>Total Out of Pocket Paid</th>
+                <th style={{ padding: '12px 16px' }}>Total Consumption Share</th>
+                <th style={{ padding: '12px 16px' }}>Net Position (Credit / Debt)</th>
               </tr>
             </thead>
             <tbody>
@@ -1378,8 +1580,20 @@ const SettlementTab = ({ tripId, trip, participants, onRefresh }) => {
                   <td style={{ padding: '12px 16px', fontWeight: 600 }}>{b.name}</td>
                   <td style={{ padding: '12px 16px' }}>₹{(b.total_paid || 0).toFixed(2)}</td>
                   <td style={{ padding: '12px 16px' }}>₹{(b.total_owed || 0).toFixed(2)}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: 700, color: b.net_balance > 0 ? 'var(--color-danger)' : b.net_balance < 0 ? 'var(--color-success)' : 'var(--color-ink)' }}>
-                    {b.net_balance > 0 ? `Owes ₹${b.net_balance.toFixed(2)}` : b.net_balance < 0 ? `Owed ₹${Math.abs(b.net_balance).toFixed(2)}` : 'Even (₹0.00)'}
+                  <td style={{ padding: '12px 16px' }}>
+                    {b.net_balance > 0.005 ? (
+                      <span className="badge badge-success" style={{ fontSize: '12px', fontWeight: 700 }}>
+                        + ₹{b.net_balance.toFixed(2)} (Owed / Creditor)
+                      </span>
+                    ) : b.net_balance < -0.005 ? (
+                      <span className="badge badge-danger" style={{ fontSize: '12px', fontWeight: 700 }}>
+                        - ₹{Math.abs(b.net_balance).toFixed(2)} (Owes / Debtor)
+                      </span>
+                    ) : (
+                      <span className="badge" style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '12px', fontWeight: 600 }}>
+                        Even (₹0.00 Settled)
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -1390,31 +1604,38 @@ const SettlementTab = ({ tripId, trip, participants, onRefresh }) => {
 
       {/* Required Payout Transactions */}
       <div className="card">
-        <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>
-          Simplified Payout Transactions ({settlement?.transactions_required?.length || 0})
+        <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: 'var(--color-forest-ink)' }}>
+          Required Peer Payout Transactions ({settlement?.transactions_required?.length || 0})
         </h4>
 
         {settlement?.transactions_required?.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-success)', fontWeight: 600 }}>
-            🎉 All accounts are balanced! No transactions needed.
+          <div style={{ textAlign: 'center', padding: '36px', color: '#15803d', fontWeight: 700, backgroundColor: '#f0fdf4', borderRadius: '12px', border: '1px solid #86efac' }}>
+            🎉 All accounts are perfectly balanced! No peer payments required.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {settlement?.transactions_required?.map((tx) => (
-              <div key={tx._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--color-border)', borderRadius: '12px', backgroundColor: tx.status === 'COMPLETED' ? '#f0fdf4' : '#ffffff' }}>
+              <div key={tx._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', border: '1px solid var(--color-border)', borderRadius: '12px', backgroundColor: tx.status === 'COMPLETED' ? '#f0fdf4' : '#ffffff', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '15px' }}>{tx.from_participant?.name || 'Member'}</div>
+                  <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--color-forest-ink)' }}>{tx.from_participant?.name || 'Member'}</div>
                   <ArrowRight size={18} style={{ color: 'var(--color-primary)' }} />
-                  <div style={{ fontWeight: 700, fontSize: '15px' }}>{tx.to_participant?.name || 'Member'}</div>
+                  <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--color-forest-ink)' }}>{tx.to_participant?.name || 'Member'}</div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-ink)' }}>₹{tx.amount.toFixed(2)}</span>
+                  <span style={{ fontSize: '20px', fontWeight: 900, fontFamily: 'var(--font-deacon)', color: 'var(--color-forest-ink)' }}>₹{tx.amount.toFixed(2)}</span>
                   {tx.status === 'COMPLETED' ? (
-                    <span className="badge badge-success">COMPLETED</span>
+                    <span className="badge badge-success" style={{ padding: '6px 12px', fontSize: '12px' }}>✓ SETTLED</span>
                   ) : (
-                    <button className="btn-primary" onClick={() => handleRecordPayment(tx)} style={{ fontSize: '12px', padding: '6px 12px' }}>
-                      Mark Paid
+                    <button
+                      className="btn-meadow"
+                      onClick={() => {
+                        setSettleModalTx(tx);
+                        setSettleMethod('upi');
+                      }}
+                      style={{ fontSize: '12px', padding: '8px 16px', fontWeight: 800 }}
+                    >
+                      Settle Up →
                     </button>
                   )}
                 </div>
@@ -1423,6 +1644,105 @@ const SettlementTab = ({ tripId, trip, participants, onRefresh }) => {
           </div>
         )}
       </div>
+
+      {/* Settle Up Interactive Modal */}
+      {settleModalTx && (
+        <div className="modal-overlay" onClick={() => setSettleModalTx(null)}>
+          <div className="modal-dialog" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-forest-ink)' }}>Settle Up Debt</h3>
+              <button onClick={() => setSettleModalTx(null)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: 'var(--color-muted)' }}>×</button>
+            </div>
+
+            <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--color-border)', marginBottom: '18px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: 'var(--color-moss-gray)', textTransform: 'uppercase', fontWeight: 700 }}>Peer Settlement</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', margin: '8px 0' }}>
+                <strong style={{ fontSize: '16px', color: 'var(--color-forest-ink)' }}>{settleModalTx.from_participant?.name || 'Debtor'}</strong>
+                <ArrowRight size={16} color="var(--color-forest-ink)" />
+                <strong style={{ fontSize: '16px', color: 'var(--color-forest-ink)' }}>{settleModalTx.to_participant?.name || 'Creditor'}</strong>
+              </div>
+              <div style={{ fontSize: '32px', fontFamily: 'var(--font-deacon)', fontWeight: 900, color: 'var(--color-forest-ink)' }}>
+                ₹{settleModalTx.amount.toFixed(2)}
+              </div>
+            </div>
+
+            {/* Payment Method Selector */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              {[
+                { id: 'upi', label: '📱 UPI Direct' },
+                { id: 'cash', label: '💵 Cash Handover' },
+                { id: 'bank', label: '🏦 Bank IMPS' }
+              ].map(m => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setSettleMethod(m.id)}
+                  style={{
+                    flex: 1, padding: '10px 8px', borderRadius: '8px', border: settleMethod === m.id ? '2px solid var(--color-forest-ink)' : '1px solid #cbd5e1',
+                    backgroundColor: settleMethod === m.id ? 'rgba(85, 221, 74, 0.15)' : '#ffffff',
+                    fontWeight: 700, fontSize: '12px', cursor: 'pointer', color: 'var(--color-forest-ink)'
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {settleMethod === 'upi' && (
+              <div style={{ backgroundColor: '#f0fdf4', padding: '14px', borderRadius: '10px', border: '1px solid #86efac', marginBottom: '18px', fontSize: '13px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: 700, color: '#166534' }}>Recipient UPI VPA:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const upiId = `${(settleModalTx.to_participant?.name || 'payee').toLowerCase().replace(/[^a-z0-9]/g, '')}@okaxis`;
+                      navigator.clipboard.writeText(upiId);
+                      setCopiedUpi(true);
+                      setTimeout(() => setCopiedUpi(false), 2000);
+                    }}
+                    style={{ fontSize: '11px', background: '#ffffff', border: '1px solid #86efac', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', fontWeight: 700, color: '#15803d' }}
+                  >
+                    {copiedUpi ? '✓ Copied' : 'Copy UPI'}
+                  </button>
+                </div>
+                <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '14px', color: '#14532d' }}>
+                  {`${(settleModalTx.to_participant?.name || 'payee').toLowerCase().replace(/[^a-z0-9]/g, '')}@okaxis`}
+                </div>
+                <p style={{ fontSize: '11px', color: '#15803d', marginTop: '6px' }}>
+                  Open Google Pay, PhonePe, or Paytm and send ₹{settleModalTx.amount.toFixed(2)}. Once transferred, click confirm below.
+                </p>
+              </div>
+            )}
+
+            {settleMethod === 'cash' && (
+              <div style={{ backgroundColor: '#fefce8', padding: '14px', borderRadius: '10px', border: '1px solid #fef08a', marginBottom: '18px', fontSize: '13px', color: '#854d0e' }}>
+                💵 <strong>Handover in Cash:</strong> You are recording an in-person cash handover of ₹{settleModalTx.amount.toFixed(2)} directly to {settleModalTx.to_participant?.name}.
+              </div>
+            )}
+
+            {settleMethod === 'bank' && (
+              <div style={{ backgroundColor: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #cbd5e1', marginBottom: '18px', fontSize: '13px', color: '#334155' }}>
+                🏦 <strong>Direct Bank Transfer:</strong> Transfer ₹{settleModalTx.amount.toFixed(2)} via IMPS / NEFT directly to {settleModalTx.to_participant?.name}'s account.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button type="button" className="btn-secondary" onClick={() => setSettleModalTx(null)}>Cancel</button>
+              <button
+                type="button"
+                className="btn-meadow"
+                onClick={async () => {
+                  await handleRecordPayment(settleModalTx, settleMethod);
+                  setSettleModalTx(null);
+                }}
+                style={{ fontWeight: 800 }}
+              >
+                Confirm Payment & Settle ✓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
@@ -1527,16 +1847,16 @@ const SettingsTab = ({ trip, onRefresh }) => {
 /* ADD EXPENSE WIZARD MODAL COMPONENT (7 Steps as per design specs) */
 const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, participants, parsedData, onSubmit, onClose }) => {
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }}>
-      <div className="card" style={{ width: '100%', maxWidth: '520px', borderRadius: '16px', maxHeight: '90vh', overflowY: 'auto' }}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-dialog" style={{ maxWidth: '580px' }} onClick={e => e.stopPropagation()}>
         
         {/* Wizard Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
-            <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Log Group Expense</h3>
-            <span style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600 }}>Step {step} of 7</span>
+            <h3 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-forest-ink)' }}>Log Group Expense</h3>
+            <span style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Step {step} of 7</span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
         </div>
 
         <form onSubmit={onSubmit}>
@@ -1544,7 +1864,7 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
           {step === 1 && (
             <div>
               {parsedData ? (
-                <div style={{ backgroundColor: '#f0fdf4', padding: '18px', borderRadius: '12px', border: '1.5px solid #86efac', marginBottom: '16px' }}>
+                <div style={{ backgroundColor: '#f0fdf4', padding: '18px', borderRadius: '14px', border: '1.5px solid #86efac', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <span style={{ fontSize: '14px', fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Sparkles size={18} /> Groq AI Parsed Receipt Summary
@@ -1579,11 +1899,10 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
                     </div>
                   </div>
 
-
                   {parsedData.items && parsedData.items.length > 0 && (
                     <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #bbf7d0' }}>
                       <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534', marginBottom: '6px' }}>Line Items Breakdown ({parsedData.items.length}):</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#1f2937', backgroundColor: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#1f2937', backgroundColor: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', maxHeight: '140px', overflowY: 'auto' }}>
                         {parsedData.items.map((item, idx) => (
                           <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: idx < parsedData.items.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                             <span>• {item.name} <strong style={{ color: '#64748b' }}>(x{item.quantity})</strong></span>
@@ -1594,22 +1913,14 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
                     </div>
                   )}
 
-                  {(parsedData.tax > 0 || parsedData.tip > 0 || parsedData.subtotal > 0) && (
-                    <div style={{ marginTop: '8px', fontSize: '11px', color: '#4b5563', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                      {parsedData.subtotal > 0 && <span>Subtotal: {parsedData.subtotal}</span>}
-                      {parsedData.tax > 0 && <span>Tax: {parsedData.tax}</span>}
-                      {parsedData.tip > 0 && <span>Tip: {parsedData.tip}</span>}
-                    </div>
-                  )}
-
                   <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
                     <button
                       type="button"
                       className="btn-primary"
                       style={{ flex: 1, padding: '10px', fontSize: '13px', fontWeight: 700, justifyContent: 'center' }}
-                      onClick={() => setStep(3)} // Jump straight to Payer Selection
+                      onClick={() => setStep(2)}
                     >
-                      ⚡ Apply AI Data & Pick Payer →
+                      ⚡ Apply AI Data & Customize Split →
                     </button>
                   </div>
                 </div>
@@ -1617,10 +1928,10 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
 
               {!parsedData && (
                 <div>
-                  <p style={{ fontSize: '14px', marginBottom: '16px' }}>How would you like to record this expense?</p>
+                  <p style={{ fontSize: '14px', marginBottom: '16px', color: 'var(--color-charcoal)' }}>How would you like to record this expense?</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <button type="button" className="btn-secondary" style={{ justifyContent: 'flex-start', padding: '14px' }} onClick={() => setStep(2)}>
-                      📝 Manual Entry
+                    <button type="button" className="btn-secondary" style={{ justifyContent: 'flex-start', padding: '16px', fontSize: '14px', fontWeight: 600 }} onClick={() => setStep(2)}>
+                      📝 Manual Entry (Description, Category & Split)
                     </button>
                   </div>
                 </div>
@@ -1628,33 +1939,81 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
             </div>
           )}
 
-          {/* STEP 2: Description & Merchant */}
+          {/* STEP 2: Description, Merchant & Side Quest Toggle */}
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Description *</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-forest-ink)' }}>Description *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Group Seafood Dinner"
                   value={expenseForm.description}
                   onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px' }}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
                 />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Category</label>
-                <select
-                  value={expenseForm.category}
-                  onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px' }}
-                >
-                  <option value="FOOD">Food & Dining</option>
-                  <option value="ACCOMMODATION">Accommodation</option>
-                  <option value="TRANSPORT">Transport & Taxis</option>
-                  <option value="ACTIVITY">Activities & Excursions</option>
-                  <option value="OTHER">Other</option>
-                </select>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-forest-ink)' }}>Merchant / Venue</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Fisherman's Wharf"
+                    value={expenseForm.merchant}
+                    onChange={e => setExpenseForm({ ...expenseForm, merchant: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--color-forest-ink)' }}>Category</label>
+                  <select
+                    value={expenseForm.category}
+                    onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
+                  >
+                    <option value="FOOD">Food & Dining</option>
+                    <option value="ACCOMMODATION">Accommodation</option>
+                    <option value="TRANSPORT">Transport & Taxis</option>
+                    <option value="ACTIVITY">Activities & Excursions</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Side Quest / Sub-crew Spend Toggle */}
+              <div style={{
+                backgroundColor: expenseForm.isSideQuest ? '#f0fdf4' : '#f8fafc',
+                border: `1.5px solid ${expenseForm.isSideQuest ? '#86efac' : 'var(--color-sage-border)'}`,
+                borderRadius: '12px',
+                padding: '14px',
+                marginTop: '4px'
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '14px', color: expenseForm.isSideQuest ? '#166534' : 'var(--color-forest-ink)' }}>
+                  <input
+                    type="checkbox"
+                    checked={expenseForm.isSideQuest}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, isSideQuest: e.target.checked })}
+                    style={{ width: '18px', height: '18px', accentColor: '#16a34a' }}
+                  />
+                  <span>🎮 Is this a Side Quest / Sub-Crew Spend?</span>
+                </label>
+                <p style={{ fontSize: '12px', color: expenseForm.isSideQuest ? '#15803d' : 'var(--color-moss-gray)', marginTop: '6px', marginLeft: '28px', lineHeight: 1.4 }}>
+                  Enable this if only a subset of travelers joined this excursion (e.g. scuba diving, late-night cafe, taxi ride). Only members selected in Step 5 will share this cost; other group members owe ₹0.00!
+                </p>
+                {expenseForm.isSideQuest && (
+                  <div style={{ marginTop: '10px', marginLeft: '28px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#166534', marginBottom: '4px' }}>Side Quest Name / Activity Title *</label>
+                    <input
+                      type="text"
+                      required={expenseForm.isSideQuest}
+                      placeholder="e.g. Scuba Diving at Grand Island"
+                      value={expenseForm.sideQuestTitle}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, sideQuestTitle: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #86efac', fontSize: '13px', backgroundColor: '#ffffff' }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1662,10 +2021,10 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
           {/* STEP 3: Payer Selection */}
           {step === 3 && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Who Paid for this Expense? *</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-forest-ink)' }}>Who Paid for this Expense? *</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
                 {participants.map(p => (
-                  <label key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', cursor: 'pointer', backgroundColor: expenseForm.payerId === p._id ? 'var(--color-primary-muted)' : '#ffffff' }}>
+                  <label key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderRadius: '10px', border: expenseForm.payerId === p._id ? '2px solid var(--color-forest-ink)' : '1px solid var(--color-border)', cursor: 'pointer', backgroundColor: expenseForm.payerId === p._id ? 'rgba(85, 221, 74, 0.12)' : '#ffffff' }}>
                     <input
                       type="radio"
                       name="payer"
@@ -1673,7 +2032,10 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
                       checked={expenseForm.payerId === p._id}
                       onChange={() => setExpenseForm({ ...expenseForm, payerId: p._id })}
                     />
-                    <strong style={{ fontSize: '14px' }}>{p.name}</strong>
+                    <div>
+                      <strong style={{ fontSize: '14px', color: 'var(--color-forest-ink)' }}>{p.name}</strong>
+                      <span style={{ fontSize: '12px', color: 'var(--color-moss-gray)', marginLeft: '8px' }}>({p.email})</span>
+                    </div>
                   </label>
                 ))}
               </div>
@@ -1683,28 +2045,49 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
           {/* STEP 4: Amount Input */}
           {step === 4 && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Total Expense Amount (₹) *</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                placeholder="150.00"
-                value={expenseForm.amount}
-                onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '18px', fontWeight: 700 }}
-              />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-forest-ink)' }}>Total Expense Amount (₹) *</label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '22px', fontWeight: 900, color: 'var(--color-forest-ink)' }}>₹</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                  value={expenseForm.amount}
+                  onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                  style={{ width: '100%', padding: '14px 14px 14px 40px', borderRadius: '10px', border: '2px solid var(--color-forest-ink)', fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-deacon)', color: 'var(--color-forest-ink)', backgroundColor: '#ffffff' }}
+                />
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--color-moss-gray)', marginTop: '8px' }}>
+                Enter the exact total amount in INR. Any fractional pennies will be resolved via the trip's rounding policy.
+              </p>
             </div>
           )}
 
           {/* STEP 5: Participant Selection */}
           {step === 5 && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Who Participated in this Expense?</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-forest-ink)' }}>
+                  {expenseForm.isSideQuest ? '🎮 Select Side Quest Crew' : 'Who Participated in this Expense?'}
+                </label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button type="button" onClick={() => setExpenseForm({ ...expenseForm, selectedParticipantIds: participants.map(p => p._id) })} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}>Select All</button>
+                  <button type="button" onClick={() => setExpenseForm({ ...expenseForm, selectedParticipantIds: [] })} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}>Clear All</button>
+                </div>
+              </div>
+
+              {expenseForm.isSideQuest && (
+                <div style={{ backgroundColor: '#fefce8', border: '1px solid #fef08a', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', fontSize: '12px', color: '#854d0e', fontWeight: 600 }}>
+                  🎮 Side Quest Mode: Only the selected travelers will share this ₹{Number(expenseForm.amount || 0).toFixed(2)} cost. Non-selected members will not be billed!
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
                 {participants.map(p => {
                   const isChecked = expenseForm.selectedParticipantIds.includes(p._id);
                   return (
-                    <label key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', cursor: 'pointer' }}>
+                    <label key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '8px', border: isChecked ? '1.5px solid var(--color-meadow-border)' : '1px solid var(--color-border)', cursor: 'pointer', backgroundColor: isChecked ? 'rgba(85, 221, 74, 0.08)' : '#ffffff' }}>
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -1716,7 +2099,12 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
                           }
                         }}
                       />
-                      <span>{p.name}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--color-forest-ink)' }}>{p.name}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--color-moss-gray)', marginLeft: 'auto' }}>
+                        {isChecked && expenseForm.amount && expenseForm.selectedParticipantIds.length > 0
+                          ? `₹${(Number(expenseForm.amount) / expenseForm.selectedParticipantIds.length).toFixed(2)} share`
+                          : 'Not participating'}
+                      </span>
                     </label>
                   );
                 })}
@@ -1727,33 +2115,72 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
           {/* STEP 6: Split Model Selection */}
           {step === 6 && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Select Split Model</label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-forest-ink)' }}>Select Split Model</label>
               <select
                 value={expenseForm.splitMethod}
                 onChange={e => setExpenseForm({ ...expenseForm, splitMethod: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px' }}
+                style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', backgroundColor: '#ffffff' }}
               >
-                <option value="EQUAL">Equally Among Participants</option>
+                <option value="EQUAL">Equally Among Selected Participants</option>
                 <option value="PERCENTAGE">By Percentage</option>
                 <option value="CUSTOM">Custom Rupee Amounts</option>
               </select>
+
+              <div style={{ marginTop: '16px', padding: '14px', backgroundColor: '#f8fafc', borderRadius: '10px', fontSize: '13px', color: 'var(--color-charcoal)' }}>
+                {expenseForm.splitMethod === 'EQUAL' && (
+                  <div>
+                    <strong>Equal Split:</strong> ₹{Number(expenseForm.amount || 0).toFixed(2)} split across {expenseForm.selectedParticipantIds.length} members = <strong>₹{expenseForm.selectedParticipantIds.length > 0 ? (Number(expenseForm.amount || 0) / expenseForm.selectedParticipantIds.length).toFixed(2) : 0}</strong> each.
+                  </div>
+                )}
+                {expenseForm.splitMethod !== 'EQUAL' && (
+                  <div>
+                    Custom shares will be calculated automatically according to group settings.
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* STEP 7: Review & Confirm */}
           {step === 7 && (
-            <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', fontSize: '14px' }}>
-              <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px' }}>Review & Confirm</h4>
-              <p><strong>Description:</strong> {expenseForm.description}</p>
-              <p><strong>Amount:</strong> ₹{Number(expenseForm.amount).toFixed(2)}</p>
-              <p><strong>Payer:</strong> {participants.find(p => p._id === expenseForm.payerId)?.name || 'Payer'}</p>
-              <p><strong>Split Model:</strong> {expenseForm.splitMethod}</p>
-              <p><strong>Participants ({expenseForm.selectedParticipantIds.length}):</strong></p>
+            <div style={{ backgroundColor: '#f8fafc', padding: '18px', borderRadius: '14px', fontSize: '14px', border: '1px solid var(--color-sage-border)' }}>
+              <h4 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '14px', color: 'var(--color-forest-ink)' }}>Review & Confirm Expense</h4>
+              
+              {expenseForm.isSideQuest && (
+                <div style={{ marginBottom: '12px' }}>
+                  <span className="badge badge-warning" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontSize: '12px', padding: '4px 10px' }}>
+                    🎮 SIDE QUEST: {expenseForm.sideQuestTitle || 'Sub-Group Spend'}
+                  </span>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', marginBottom: '12px' }}>
+                <div><strong>Description:</strong> {expenseForm.description}</div>
+                <div><strong>Total Amount:</strong> <span style={{ color: 'var(--color-forest-ink)', fontWeight: 800 }}>₹{Number(expenseForm.amount).toFixed(2)}</span></div>
+                <div><strong>Category:</strong> {expenseForm.category}</div>
+                <div><strong>Paid By:</strong> {participants.find(p => p._id === expenseForm.payerId)?.name || 'Payer'}</div>
+                <div><strong>Split Model:</strong> {expenseForm.splitMethod}</div>
+                <div><strong>Participants:</strong> {expenseForm.selectedParticipantIds.length} members</div>
+              </div>
+
+              <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '10px', marginTop: '10px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-moss-gray)' }}>Selected Members:</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                  {expenseForm.selectedParticipantIds.map(id => {
+                    const p = participants.find(part => part._id === id);
+                    return (
+                      <span key={id} style={{ fontSize: '11px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                        {p?.name || 'Member'}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Wizard Controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '12px', borderTop: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--color-border)' }}>
             {step > 1 ? (
               <button type="button" className="btn-secondary" onClick={() => setStep(step - 1)}>Back</button>
             ) : (
@@ -1761,9 +2188,35 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
             )}
 
             {step < 7 ? (
-              <button type="button" className="btn-primary" onClick={() => setStep(step + 1)}>Next</button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  if (step === 2 && !expenseForm.description.trim()) {
+                    alert('Please enter a description');
+                    return;
+                  }
+                  if (step === 3 && !expenseForm.payerId) {
+                    alert('Please select who paid');
+                    return;
+                  }
+                  if (step === 4 && (!expenseForm.amount || Number(expenseForm.amount) <= 0)) {
+                    alert('Please enter a valid amount');
+                    return;
+                  }
+                  if (step === 5 && expenseForm.selectedParticipantIds.length === 0) {
+                    alert('Please select at least one participant');
+                    return;
+                  }
+                  setStep(step + 1);
+                }}
+              >
+                Next Step →
+              </button>
             ) : (
-              <button type="submit" className="btn-primary">Confirm & Submit Expense</button>
+              <button type="submit" className="btn-meadow" style={{ fontWeight: 800 }}>
+                Confirm & Log Expense ✓
+              </button>
             )}
           </div>
         </form>

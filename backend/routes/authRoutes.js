@@ -4,15 +4,18 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const Participant = require('../models/Participant');
+const Trip = require('../models/Trip');
 const auth = require('../middleware/auth');
 const { sendWelcomeEmail, sendLoginAlertEmail } = require('../services/emailService');
+const { recalculateParticipantBalances } = require('../services/calculationService');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || '1086955920356-ab1hunnm5qgru8v5oago1pvo35ufeaeu.apps.googleusercontent.com');
 
 // POST /api/v1/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, phone, venmo_handle, paypal_email, upi_id } = req.body;
+    const { name, email, password, phone, venmo_handle, paypal_email, upi_id, role, inviteCode } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide name, email, and password.' });
@@ -36,21 +39,71 @@ router.post('/register', async (req, res) => {
       phone: phone || '',
       venmo_handle: venmo_handle || '',
       paypal_email: paypal_email || '',
-      upi_id: upi_id || ''
+      upi_id: upi_id || '',
+      role: role === 'member' ? 'member' : 'host'
     });
 
     await user.save();
 
+    // Auto-link existing Participant records created by hosts with this email
+    await Participant.updateMany(
+      { email: user.email },
+      { $set: { user_id: user._id } }
+    );
+
+    // If an inviteCode was provided, auto-join that trip
+    let joinedTripId = null;
+    if (inviteCode && inviteCode.trim()) {
+      const codeClean = inviteCode.trim().toUpperCase();
+      const trip = await Trip.findOne({ inviteCode: codeClean });
+      if (trip) {
+        let existingPart = await Participant.findOne({ trip_id: trip._id, email: user.email });
+        if (!existingPart) {
+          existingPart = new Participant({
+            trip_id: trip._id,
+            user_id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone || '',
+            upi_id: user.upi_id || '',
+            venmo_handle: user.venmo_handle || '',
+            status: 'confirmed',
+            arrival_date: trip.start_date,
+            departure_date: trip.end_date,
+            cost_tier: 'STANDARD',
+            tier_multiplier: 1.0
+          });
+          await existingPart.save();
+          await recalculateParticipantBalances(trip._id);
+        } else if (!existingPart.user_id) {
+          existingPart.user_id = user._id;
+          await existingPart.save();
+        }
+        joinedTripId = trip._id;
+      }
+    }
+
     // Trigger welcome email asynchronously
     sendWelcomeEmail(user);
 
-    const payload = { userId: user._id, email: user.email, name: user.name };
+    const payload = { userId: user._id, email: user.email, name: user.name, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET || 'tripledger_super_secret_jwt_key_2026_safe_hash', { expiresIn: '7d' });
 
     res.status(201).json({
       success: true,
       token,
-      user: { id: user._id, name: user.name, email: user.email, avatar: user.avatar, phone: user.phone, venmo_handle: user.venmo_handle, paypal_email: user.paypal_email, upi_id: user.upi_id }
+      joinedTripId,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        phone: user.phone,
+        venmo_handle: user.venmo_handle,
+        paypal_email: user.paypal_email,
+        upi_id: user.upi_id,
+        role: user.role
+      }
     });
   } catch (err) {
     console.error('Register error:', err);
@@ -84,13 +137,29 @@ router.post('/login', async (req, res) => {
     // Trigger login alert email asynchronously
     sendLoginAlertEmail(user, 'Email & Password');
 
-    const payload = { userId: user._id, email: user.email, name: user.name };
+    // Link any unlinked participant records matching this user's email
+    await Participant.updateMany(
+      { email: user.email, $or: [{ user_id: { $exists: false } }, { user_id: null }] },
+      { $set: { user_id: user._id } }
+    );
+
+    const payload = { userId: user._id, email: user.email, name: user.name, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET || 'tripledger_super_secret_jwt_key_2026_safe_hash', { expiresIn: '7d' });
 
     res.json({
       success: true,
       token,
-      user: { id: user._id, name: user.name, email: user.email, avatar: user.avatar, phone: user.phone, venmo_handle: user.venmo_handle, paypal_email: user.paypal_email, upi_id: user.upi_id }
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        phone: user.phone,
+        venmo_handle: user.venmo_handle,
+        paypal_email: user.paypal_email,
+        upi_id: user.upi_id,
+        role: user.role
+      }
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -101,7 +170,7 @@ router.post('/login', async (req, res) => {
 // POST /api/v1/auth/google
 router.post('/google', async (req, res) => {
   try {
-    const { token, credential } = req.body;
+    const { token, credential, role } = req.body;
     const idToken = credential || token;
 
     if (!idToken) {
@@ -164,13 +233,20 @@ router.post('/google', async (req, res) => {
         googleId: sub || '',
         avatar: picture || '',
         authProvider: 'google',
-        password: ''
+        password: '',
+        role: role === 'member' ? 'member' : 'host'
       });
       await user.save();
       sendWelcomeEmail(user);
     }
 
-    const jwtPayload = { userId: user._id, email: user.email, name: user.name };
+    // Auto-link existing Participant records
+    await Participant.updateMany(
+      { email: user.email, $or: [{ user_id: { $exists: false } }, { user_id: null }] },
+      { $set: { user_id: user._id } }
+    );
+
+    const jwtPayload = { userId: user._id, email: user.email, name: user.name, role: user.role };
     const jwtToken = jwt.sign(jwtPayload, process.env.JWT_SECRET || 'tripledger_super_secret_jwt_key_2026_safe_hash', { expiresIn: '7d' });
 
     res.json({
@@ -184,7 +260,8 @@ router.post('/google', async (req, res) => {
         phone: user.phone,
         venmo_handle: user.venmo_handle,
         paypal_email: user.paypal_email,
-        upi_id: user.upi_id
+        upi_id: user.upi_id,
+        role: user.role
       }
     });
   } catch (err) {
@@ -203,6 +280,20 @@ router.get('/me', auth, async (req, res) => {
     res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error fetching profile.' });
+  }
+});
+
+// GET /api/v1/auth/members - List registered users so host can easily add them to trips
+router.get('/members', auth, async (req, res) => {
+  try {
+    const members = await User.find({})
+      .select('_id name email role avatar phone upi_id')
+      .sort({ name: 1 })
+      .limit(100);
+    res.json({ success: true, members });
+  } catch (err) {
+    console.error('Fetch members error:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching members list.' });
   }
 });
 

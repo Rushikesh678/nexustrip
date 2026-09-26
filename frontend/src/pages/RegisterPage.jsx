@@ -11,7 +11,9 @@ export const RegisterPage = () => {
     password: '',
     phone: '',
     venmo_handle: '',
-    upi_id: ''
+    upi_id: '',
+    role: 'member', // Default to member for travelers
+    inviteCode: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,11 @@ export const RegisterPage = () => {
     try {
       const res = await register(formData);
       if (res.success) {
-        navigate('/trips');
+        if (res.joinedTripId) {
+          navigate(`/trip/${res.joinedTripId}`);
+        } else {
+          navigate('/trips');
+        }
       } else {
         setError(res.message || 'Registration failed.');
       }
@@ -136,6 +142,91 @@ export const RegisterPage = () => {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          {/* Account Type Selector */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-forest-ink)', marginBottom: '8px' }}>
+              CHOOSE ACCOUNT TYPE
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, role: 'member' })}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: formData.role === 'member' ? '2px solid var(--color-forest-ink)' : '1px solid var(--color-sage-border)',
+                  backgroundColor: formData.role === 'member' ? '#ffffff' : 'transparent',
+                  color: 'var(--color-forest-ink)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                  boxShadow: formData.role === 'member' ? '0 2px 8px rgba(18, 35, 21, 0.12)' : 'none'
+                }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  🎒 Traveler / Member
+                </div>
+                <div style={{ fontSize: '11px', color: '#666666', marginTop: '3px' }}>
+                  Join host trips & log side quests
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, role: 'host' })}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: formData.role === 'host' ? '2px solid var(--color-forest-ink)' : '1px solid var(--color-sage-border)',
+                  backgroundColor: formData.role === 'host' ? '#ffffff' : 'transparent',
+                  color: 'var(--color-forest-ink)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                  boxShadow: formData.role === 'host' ? '0 2px 8px rgba(18, 35, 21, 0.12)' : 'none'
+                }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  👑 Trip Organizer
+                </div>
+                <div style={{ fontSize: '11px', color: '#666666', marginTop: '3px' }}>
+                  Create trips & invite members
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Optional Trip Invite Code for Members */}
+          {formData.role === 'member' && (
+            <div style={{ backgroundColor: '#f0fdf4', padding: '12px 14px', borderRadius: '10px', border: '1px solid #86efac' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#166534', marginBottom: '6px' }}>
+                HAVE A TRIP INVITE CODE? (OPTIONAL)
+              </label>
+              <input
+                type="text"
+                name="inviteCode"
+                value={formData.inviteCode}
+                onChange={handleChange}
+                placeholder="e.g. EXP-7A2B"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #86efac',
+                  backgroundColor: '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  outline: 'none',
+                  color: '#166534',
+                  textTransform: 'uppercase'
+                }}
+              />
+              <span style={{ fontSize: '11px', color: '#15803d', display: 'block', marginTop: '4px' }}>
+                You'll be instantly added to your host's trip ledger upon sign up.
+              </span>
+            </div>
+          )}
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-forest-ink)', marginBottom: '6px' }}>
               FULL NAME

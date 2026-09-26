@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Calendar, MapPin, IndianRupee, Users, ChevronRight, Sparkles, Compass, ShieldCheck } from 'lucide-react';
+import { Plus, Calendar, MapPin, IndianRupee, Users, ChevronRight, Sparkles, Compass, ShieldCheck, KeyRound, Copy, Check } from 'lucide-react';
 
 export const TripsPage = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinInviteCode, setJoinInviteCode] = useState('');
+  const [joiningTrip, setJoiningTrip] = useState(false);
+  const [tripFilter, setTripFilter] = useState('ALL'); // 'ALL' | 'HOSTED' | 'MEMBER'
+  const [copiedCode, setCopiedCode] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     destination: '',
@@ -55,6 +60,32 @@ export const TripsPage = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleJoinTrip = async (e) => {
+    e.preventDefault();
+    if (!joinInviteCode.trim()) return;
+    setJoiningTrip(true);
+    try {
+      const res = await api.joinTripByCode(joinInviteCode.trim());
+      if (res.success && res.tripId) {
+        setShowJoinModal(false);
+        setJoinInviteCode('');
+        fetchTrips();
+        navigate(`/trip/${res.tripId}`);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to join trip. Please check your invite code.');
+    } finally {
+      setJoiningTrip(false);
+    }
+  };
+
+  const handleCopyCode = (e, code) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(''), 2000);
   };
 
   const handleQuickSeedDemo = async () => {
@@ -137,7 +168,7 @@ export const TripsPage = () => {
       <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto' }}>
         
         {/* Page Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
           <div>
             <span className="eyebrow-label">01 / EXPEDITIONS & TRIP LEDGERS</span>
             <h1 className="deacon-display" style={{ fontSize: 'clamp(36px, 5vw, 64px)', color: 'var(--color-forest-ink)', marginTop: '8px' }}>
@@ -147,15 +178,42 @@ export const TripsPage = () => {
               Double-entry debits, mid-trip prorated balances, and zero-conflict settlements
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button className="btn-ghost-cream" onClick={handleQuickSeedDemo} disabled={submitting}>
               <Sparkles size={16} color="var(--color-forest-ink)" /> LOAD DEMO TRIP
+            </button>
+            <button className="btn-ghost-cream" onClick={() => setShowJoinModal(true)}>
+              <KeyRound size={16} color="var(--color-forest-ink)" /> JOIN WITH CODE
             </button>
             <button className="btn-meadow" onClick={() => setShowModal(true)}>
               <Plus size={18} /> CREATE NEW TRIP
             </button>
           </div>
         </div>
+
+        {/* Filter Tabs */}
+        {!loading && trips.length > 0 && (
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setTripFilter('ALL')}
+              className={tripFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}
+            >
+              All Expeditions ({trips.length})
+            </button>
+            <button
+              onClick={() => setTripFilter('HOSTED')}
+              className={tripFilter === 'HOSTED' ? 'btn-primary' : 'btn-secondary'}
+            >
+              👑 Hosted by Me ({trips.filter(t => t.isOrganizer).length})
+            </button>
+            <button
+              onClick={() => setTripFilter('MEMBER')}
+              className={tripFilter === 'MEMBER' ? 'btn-primary' : 'btn-secondary'}
+            >
+              🎒 Joined as Member ({trips.filter(t => !t.isOrganizer).length})
+            </button>
+          </div>
+        )}
 
         {/* Loading state */}
         {loading ? (
@@ -183,11 +241,14 @@ export const TripsPage = () => {
             </div>
             <h3 style={{ fontSize: '28px', color: 'var(--color-forest-ink)', marginBottom: '12px' }}>NO ACTIVE EXPEDITIONS YET</h3>
             <p style={{ color: '#555555', maxWidth: '500px', margin: '0 auto 28px auto', fontSize: '15px', lineHeight: 1.5 }}>
-              Create your first group trip or load our pre-populated demo trip to experience transparent double-entry expense sharing and automated settlement.
+              Create your first group trip, enter an invite code from your organizer, or load our pre-populated demo trip to experience transparent double-entry expense sharing and automated settlement.
             </p>
             <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button className="btn-meadow" onClick={() => setShowModal(true)}>
                 <Plus size={18} /> CREATE FIRST TRIP
+              </button>
+              <button className="btn-ghost-cream" onClick={() => setShowJoinModal(true)}>
+                <KeyRound size={16} /> JOIN WITH CODE
               </button>
               <button className="btn-ghost-cream" onClick={handleQuickSeedDemo}>
                 <Sparkles size={16} /> LOAD DEMO TRIP
@@ -197,7 +258,13 @@ export const TripsPage = () => {
         ) : (
           /* Trip Cards Grid */
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '28px' }}>
-            {trips.map(trip => (
+            {trips
+              .filter(trip => {
+                if (tripFilter === 'HOSTED') return trip.isOrganizer;
+                if (tripFilter === 'MEMBER') return !trip.isOrganizer;
+                return true;
+              })
+              .map(trip => (
               <div
                 key={trip._id}
                 className="card-cream"
@@ -224,9 +291,16 @@ export const TripsPage = () => {
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                    <span className={trip.status === 'active' ? 'sticker-badge' : 'sticker-badge-navy'}>
-                      {trip.status.replace('_', ' ')}
-                    </span>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span className={trip.status === 'active' ? 'sticker-badge' : 'sticker-badge-navy'}>
+                        {trip.status.replace('_', ' ')}
+                      </span>
+                      {trip.isOrganizer ? (
+                        <span className="badge badge-success">👑 HOST</span>
+                      ) : (
+                        <span className="badge badge-primary">🎒 MEMBER</span>
+                      )}
+                    </div>
                     <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.2)', padding: '4px 10px', borderRadius: '6px' }}>
                       {trip.currency || 'INR'} ₹{trip.budget?.toLocaleString() || '0'}
                     </span>
@@ -242,12 +316,45 @@ export const TripsPage = () => {
                     </p>
                   )}
 
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-moss-gray)', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-moss-gray)', marginBottom: '14px' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Calendar size={14} color="var(--color-forest-ink)" />
                       {new Date(trip.start_date).toLocaleDateString()} – {new Date(trip.end_date).toLocaleDateString()}
                     </span>
                   </div>
+
+                  {/* Shareable Invite Code */}
+                  {trip.inviteCode && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyCode(e, trip.inviteCode)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid var(--color-sage-border)',
+                          borderRadius: '8px',
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: 'var(--color-forest-ink)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Click to copy invite code for members"
+                      >
+                        <KeyRound size={13} color="var(--color-forest-ink)" />
+                        <span>Code: {trip.inviteCode}</span>
+                        {copiedCode === trip.inviteCode ? (
+                          <span style={{ color: '#15803d', display: 'flex', alignItems: 'center', gap: '2px' }}><Check size={12} /> Copied!</span>
+                        ) : (
+                          <Copy size={12} color="var(--color-moss-gray)" />
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ borderTop: '1px dashed var(--color-sage-border)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -260,6 +367,67 @@ export const TripsPage = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Join Trip with Code Modal */}
+        {showJoinModal && (
+          <div className="modal-overlay">
+            <div className="modal-dialog" style={{ maxWidth: '440px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <span className="eyebrow-label">EXPEDITION PASS</span>
+                  <h3 style={{ fontSize: '24px', color: 'var(--color-forest-ink)', marginTop: '4px' }}>JOIN GROUP TRIP</h3>
+                </div>
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--color-forest-ink)', fontWeight: 800 }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <p style={{ color: '#555555', fontSize: '14px', marginBottom: '20px', lineHeight: 1.4 }}>
+                Enter the Trip Invite Code shared by your host to instantly access the ledger and log your side quests.
+              </p>
+
+              <form onSubmit={handleJoinTrip} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-forest-ink)', marginBottom: '6px' }}>
+                    TRIP INVITE CODE *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. EXP-7A2B"
+                    value={joinInviteCode}
+                    onChange={(e) => setJoinInviteCode(e.target.value.toUpperCase())}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      border: '2px solid var(--color-forest-ink)',
+                      backgroundColor: '#ffffff',
+                      fontSize: '16px',
+                      fontWeight: 800,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-forest-ink)',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+                  <button type="button" className="btn-secondary" onClick={() => setShowJoinModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={joiningTrip} className="btn-meadow">
+                    {joiningTrip ? 'JOINING...' : 'JOIN TRIP LEDGER →'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 

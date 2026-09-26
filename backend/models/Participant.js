@@ -20,6 +20,8 @@ const ParticipantSchema = new mongoose.Schema({
 
   total_owed: { type: Number, default: 0 },
   total_paid: { type: Number, default: 0 },
+  consumption_share: { type: Number, default: 0 }, // Actual expense + booking share
+  upfront_paid: { type: Number, default: 0 }, // Upfront amount paid for expenses + bookings
   balance: { type: Number, default: 0 }, // total_paid - total_owed (positive = owed money, negative = owes money)
 
   payment_method: { type: String, default: 'venmo' },

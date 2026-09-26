@@ -10,7 +10,8 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   venmo_handle: { type: String, default: '' },
   paypal_email: { type: String, default: '' },
-  upi_id: { type: String, default: '' }
+  upi_id: { type: String, default: '' },
+  role: { type: String, enum: ['host', 'member'], default: 'host' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

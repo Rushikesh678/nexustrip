@@ -8,6 +8,16 @@ const AuditLog = require('../models/AuditLog');
 const auth = require('../middleware/auth');
 const { recalculateParticipantBalances } = require('../services/calculationService');
 
+// Helper to generate unique readable invite code
+const generateInviteCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'EXP-';
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
 // POST /api/v1/trips - Create trip
 router.post('/', auth, async (req, res) => {
   try {
@@ -20,11 +30,18 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide trip name, start date, and end date.' });
     }
 
+    // Ensure unique inviteCode
+    let inviteCode = generateInviteCode();
+    while (await Trip.findOne({ inviteCode })) {
+      inviteCode = generateInviteCode();
+    }
+
     const trip = new Trip({
       name,
       description: description || '',
       destination: destination || '',
       organizer_id: req.user.userId,
+      inviteCode,
       start_date: new Date(start_date),
       end_date: new Date(end_date),
       currency: currency || 'USD',
@@ -43,6 +60,9 @@ router.post('/', auth, async (req, res) => {
       user_id: req.user.userId,
       name: req.user.name,
       email: req.user.email,
+      phone: req.user.phone || '',
+      upi_id: req.user.upi_id || '',
+      venmo_handle: req.user.venmo_handle || '',
       status: 'active',
       arrival_date: trip.start_date,
       departure_date: trip.end_date
@@ -66,12 +86,85 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// POST /api/v1/trips/join - Member joins trip with invite code
+router.post('/join', auth, async (req, res) => {
+  try {
+    const { inviteCode } = req.body;
+    if (!inviteCode || !inviteCode.trim()) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid Trip Invite Code.' });
+    }
+
+    const cleanCode = inviteCode.trim().toUpperCase();
+    const trip = await Trip.findOne({ inviteCode: cleanCode });
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'No trip found matching this invite code. Please check with your host.' });
+    }
+
+    // Check if user is already a participant
+    let participant = await Participant.findOne({
+      trip_id: trip._id,
+      $or: [{ user_id: req.user.userId }, { email: req.user.email.toLowerCase() }]
+    });
+
+    if (participant) {
+      if (!participant.user_id) {
+        participant.user_id = req.user.userId;
+        await participant.save();
+      }
+      return res.json({
+        success: true,
+        message: `You are already part of "${trip.name}"!`,
+        tripId: trip._id,
+        trip
+      });
+    }
+
+    // Create participant for member
+    participant = new Participant({
+      trip_id: trip._id,
+      user_id: req.user.userId,
+      name: req.user.name,
+      email: req.user.email.toLowerCase(),
+      phone: req.user.phone || '',
+      upi_id: req.user.upi_id || '',
+      venmo_handle: req.user.venmo_handle || '',
+      status: 'confirmed',
+      arrival_date: trip.start_date,
+      departure_date: trip.end_date,
+      cost_tier: 'STANDARD',
+      tier_multiplier: 1.0
+    });
+    await participant.save();
+
+    await recalculateParticipantBalances(trip._id);
+
+    await AuditLog.create({
+      tripId: trip._id,
+      action: 'MEMBER_JOINED',
+      actorId: req.user.userId,
+      actorName: req.user.name,
+      target: { type: 'PARTICIPANT', id: participant._id.toString() },
+      reason: `${req.user.name} joined trip via invite code ${cleanCode}`
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Successfully joined "${trip.name}"!`,
+      tripId: trip._id,
+      trip
+    });
+  } catch (err) {
+    console.error('Join trip error:', err);
+    res.status(500).json({ success: false, message: 'Server error joining trip.' });
+  }
+});
+
 // GET /api/v1/trips - List all trips for logged-in user
 router.get('/', auth, async (req, res) => {
   try {
     // Find participants matching user_id or email
     const participantRecords = await Participant.find({
-      $or: [{ user_id: req.user.userId }, { email: req.user.email }]
+      $or: [{ user_id: req.user.userId }, { email: req.user.email.toLowerCase() }]
     });
     const tripIds = participantRecords.map(p => p.trip_id);
 
@@ -79,7 +172,25 @@ router.get('/', auth, async (req, res) => {
       $or: [{ organizer_id: req.user.userId }, { _id: { $in: tripIds } }]
     }).populate('organizer_id', 'name email').sort({ createdAt: -1 });
 
-    res.json({ success: true, trips });
+    // Backfill inviteCode for any legacy trips
+    for (const t of trips) {
+      if (!t.inviteCode) {
+        t.inviteCode = generateInviteCode();
+        await t.save();
+      }
+    }
+
+    // Attach isOrganizer flag
+    const formattedTrips = trips.map(t => {
+      const orgId = t.organizer_id?._id ? t.organizer_id._id.toString() : t.organizer_id?.toString();
+      const isOrganizer = orgId === req.user.userId.toString();
+      return {
+        ...t.toObject(),
+        isOrganizer
+      };
+    });
+
+    res.json({ success: true, trips: formattedTrips });
   } catch (err) {
     console.error('List trips error:', err);
     res.status(500).json({ success: false, message: 'Server error fetching trips.' });
@@ -92,6 +203,11 @@ router.get('/:tripId', auth, async (req, res) => {
     const trip = await Trip.findById(req.params.tripId).populate('organizer_id', 'name email');
     if (!trip) {
       return res.status(404).json({ success: false, message: 'Trip not found.' });
+    }
+
+    if (!trip.inviteCode) {
+      trip.inviteCode = generateInviteCode();
+      await trip.save();
     }
 
     const participants = await Participant.find({ trip_id: trip._id });

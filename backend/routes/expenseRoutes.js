@@ -18,7 +18,8 @@ router.post('/', auth, async (req, res) => {
     const { tripId } = req.params;
     const {
       description, merchant, category, amount, currency, date,
-      payerId, participants, splitMethod, receiptUrl, aiParsed, aiConfidence
+      payerId, participants, splitMethod, receiptUrl, aiParsed, aiConfidence,
+      isSideQuest, sideQuestTitle
     } = req.body;
 
     const trip = await Trip.findById(tripId);
@@ -44,16 +45,15 @@ router.post('/', auth, async (req, res) => {
     const splitType = splitMethod || 'EQUAL';
 
     if (participants && Array.isArray(participants) && participants.length > 0) {
-      let currentTotalShare = 0;
-
       if (splitType === 'EQUAL') {
-        const perPerson = roundAmount(numAmount / participants.length, trip.rounding_method);
+        const count = participants.length;
+        const perPerson = Math.floor((numAmount / count) * 100) / 100;
+        let runningTotal = 0;
         formattedParticipants = participants.map((pObj, idx) => {
           const mId = pObj.memberId || pObj;
-          // Handle small rounding on last person if applicable
-          const isLast = idx === participants.length - 1;
-          const shareVal = isLast ? roundAmount(numAmount - currentTotalShare, trip.rounding_method) : perPerson;
-          currentTotalShare += perPerson;
+          const isLast = idx === count - 1;
+          const shareVal = isLast ? Math.round((numAmount - runningTotal) * 100) / 100 : perPerson;
+          runningTotal += perPerson;
           return {
             memberId: mId,
             share: shareVal,
@@ -87,12 +87,19 @@ router.post('/', auth, async (req, res) => {
       }
     } else {
       // Default to all active participants split equally
-      const perPerson = roundAmount(numAmount / allParticipants.length, trip.rounding_method);
-      formattedParticipants = allParticipants.map(p => ({
-        memberId: p._id,
-        share: perPerson,
-        shareType: 'EQUAL'
-      }));
+      const count = allParticipants.length;
+      const perPerson = Math.floor((numAmount / count) * 100) / 100;
+      let runningTotal = 0;
+      formattedParticipants = allParticipants.map((p, idx) => {
+        const isLast = idx === count - 1;
+        const shareVal = isLast ? Math.round((numAmount - runningTotal) * 100) / 100 : perPerson;
+        runningTotal += perPerson;
+        return {
+          memberId: p._id,
+          share: shareVal,
+          shareType: 'EQUAL'
+        };
+      });
     }
 
     const expense = new Expense({
@@ -107,6 +114,8 @@ router.post('/', auth, async (req, res) => {
       receiptUrl: receiptUrl || '',
       aiParsed: !!aiParsed,
       aiConfidence: aiConfidence || 0,
+      isSideQuest: !!isSideQuest,
+      sideQuestTitle: sideQuestTitle || '',
       participants: formattedParticipants,
       status: 'POSTED',
       approvalStatus: trip.settings?.requireHostApproval ? 'PENDING_APPROVAL' : 'APPROVED'
@@ -181,7 +190,7 @@ router.put('/:eid', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Expense not found.' });
     }
 
-    const { description, merchant, category, amount, currency, date, payerId, participants, splitMethod } = req.body;
+    const { description, merchant, category, amount, currency, date, payerId, participants, splitMethod, isSideQuest, sideQuestTitle } = req.body;
     const changes = [];
 
     if (description && description !== expense.description) {
@@ -205,6 +214,8 @@ router.put('/:eid', auth, async (req, res) => {
       expense.payerId = payerId;
     }
     if (date) expense.date = new Date(date);
+    if (isSideQuest !== undefined) expense.isSideQuest = !!isSideQuest;
+    if (sideQuestTitle !== undefined) expense.sideQuestTitle = sideQuestTitle || '';
 
     if (participants && Array.isArray(participants)) {
       changes.push({ field: 'participants', before: expense.participants.length, after: participants.length });
@@ -212,12 +223,19 @@ router.put('/:eid', auth, async (req, res) => {
       const numAmount = expense.amount;
 
       if (splitType === 'EQUAL') {
-        const perPerson = roundAmount(numAmount / participants.length, 'last_person');
-        expense.participants = participants.map(pObj => ({
-          memberId: pObj.memberId || pObj,
-          share: perPerson,
-          shareType: 'EQUAL'
-        }));
+        const count = participants.length;
+        const perPerson = Math.floor((numAmount / count) * 100) / 100;
+        let runningTotal = 0;
+        expense.participants = participants.map((pObj, idx) => {
+          const isLast = idx === count - 1;
+          const shareVal = isLast ? Math.round((numAmount - runningTotal) * 100) / 100 : perPerson;
+          runningTotal += perPerson;
+          return {
+            memberId: pObj.memberId || pObj,
+            share: shareVal,
+            shareType: 'EQUAL'
+          };
+        });
       } else {
         expense.participants = participants.map(pObj => ({
           memberId: pObj.memberId,

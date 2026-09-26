@@ -103,6 +103,19 @@ export const Navbar = () => {
                 {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
               </div>
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-paper-cream)' }}>{user.name}</span>
+              <span style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                backgroundColor: user.role === 'member' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(85, 221, 74, 0.2)',
+                color: user.role === 'member' ? '#7dd3fc' : 'var(--color-meadow)',
+                border: `1px solid ${user.role === 'member' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(85, 221, 74, 0.4)'}`,
+                padding: '2px 6px',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em'
+              }}>
+                {user.role === 'member' ? '🎒 Traveler' : '👑 Host'}
+              </span>
             </div>
 
             <button

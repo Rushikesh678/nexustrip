@@ -5,13 +5,14 @@ const Trip = require('../models/Trip');
 const Booking = require('../models/Booking');
 const Expense = require('../models/Expense');
 const AuditLog = require('../models/AuditLog');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { recalculateParticipantBalances } = require('../services/calculationService');
 
 // POST /api/v1/trips/:tripId/participants - Add new participant
 router.post('/', auth, async (req, res) => {
   try {
-    const { name, email, phone, cost_tier, tier_multiplier, arrival_date, departure_date, status, venmo_handle, paypal_email, upi_id } = req.body;
+    const { name, email, phone, cost_tier, tier_multiplier, arrival_date, departure_date, status, venmo_handle, paypal_email, upi_id, user_id } = req.body;
     const { tripId } = req.params;
 
     const trip = await Trip.findById(tripId);
@@ -29,19 +30,30 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Participant with this email is already added to this trip.' });
     }
 
+    // Look for existing registered user by user_id or email
+    let linkedUserId = user_id || null;
+    let registeredUser = null;
+    if (linkedUserId) {
+      registeredUser = await User.findById(linkedUserId);
+    } else {
+      registeredUser = await User.findOne({ email: email.toLowerCase().trim() });
+      if (registeredUser) linkedUserId = registeredUser._id;
+    }
+
     participant = new Participant({
       trip_id: tripId,
+      user_id: linkedUserId,
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      phone: phone || '',
+      phone: phone || registeredUser?.phone || '',
       cost_tier: cost_tier || 'STANDARD',
       tier_multiplier: tier_multiplier || 1.0,
       arrival_date: arrival_date ? new Date(arrival_date) : trip.start_date,
       departure_date: departure_date ? new Date(departure_date) : trip.end_date,
       status: status || 'confirmed',
-      venmo_handle: venmo_handle || '',
-      paypal_email: paypal_email || '',
-      upi_id: upi_id || ''
+      venmo_handle: venmo_handle || registeredUser?.venmo_handle || '',
+      paypal_email: paypal_email || registeredUser?.paypal_email || '',
+      upi_id: upi_id || registeredUser?.upi_id || ''
     });
 
     await participant.save();

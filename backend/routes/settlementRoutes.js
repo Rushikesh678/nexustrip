@@ -36,7 +36,9 @@ router.get('/', auth, async (req, res) => {
       await settlement.save();
     } else if (settlement.status === 'IN_PROGRESS') {
       settlement.balances = calculation.balances;
-      settlement.transactions_required = calculation.transactions_required;
+      // Preserve any completed transactions
+      const completedTx = (settlement.transactions_required || []).filter(t => t.status === 'COMPLETED');
+      settlement.transactions_required = [...completedTx, ...calculation.transactions_required];
       settlement.validation_errors = calculation.validation_errors;
       settlement.is_balanced = calculation.is_balanced;
       settlement.calculatedAt = new Date();
@@ -52,8 +54,8 @@ router.get('/', auth, async (req, res) => {
       success: true,
       settlement: populatedSettlement,
       summary: {
-        totalDebtors: calculation.balances.filter(b => b.net_balance > 0.01).length,
-        totalCreditors: calculation.balances.filter(b => b.net_balance < -0.01).length,
+        totalDebtors: calculation.balances.filter(b => b.net_balance < -0.01).length,
+        totalCreditors: calculation.balances.filter(b => b.net_balance > 0.01).length,
         transactionCount: calculation.transactions_required.length,
         isBalanced: calculation.is_balanced
       }
@@ -124,13 +126,16 @@ router.post('/record-payment', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'No settlement record found.' });
     }
 
+    const payerId = from_participant?._id || from_participant;
+    const payeeId = to_participant?._id || to_participant;
+
     // Create payment record
     const payment = new Payment({
       trip_id: tripId,
-      payer_id: from_participant,
-      payee_id: to_participant,
+      payer_id: payerId,
+      payee_id: payeeId,
       amount: Number(amount),
-      payment_method: payment_method || 'venmo',
+      payment_method: payment_method || 'upi',
       status: 'completed',
       notes: 'Settlement transaction payout'
     });

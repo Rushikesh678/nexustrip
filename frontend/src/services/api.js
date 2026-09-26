@@ -26,11 +26,13 @@ export const api = {
   login: (credentials) => fetch(`${API_BASE_URL}/auth/login`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(credentials) }).then(handleResponse),
   googleLogin: (credential) => fetch(`${API_BASE_URL}/auth/google`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ credential }) }).then(handleResponse),
   getMe: () => fetch(`${API_BASE_URL}/auth/me`, { headers: getHeaders() }).then(handleResponse),
+  getMembers: () => fetch(`${API_BASE_URL}/auth/members`, { headers: getHeaders() }).then(handleResponse),
 
   // Trips
   getTrips: () => fetch(`${API_BASE_URL}/trips`, { headers: getHeaders() }).then(handleResponse),
   getTripById: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}`, { headers: getHeaders() }).then(handleResponse),
   createTrip: (tripData) => fetch(`${API_BASE_URL}/trips`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(tripData) }).then(handleResponse),
+  joinTripByCode: (inviteCode) => fetch(`${API_BASE_URL}/trips/join`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ inviteCode }) }).then(handleResponse),
   updateTrip: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
   deleteTrip: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse),
 

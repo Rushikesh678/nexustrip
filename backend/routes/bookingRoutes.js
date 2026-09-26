@@ -44,14 +44,27 @@ router.post('/', auth, async (req, res) => {
     const assigned = [];
     const numParticipants = targetParticipants.length;
     const baseShare = numParticipants > 0 ? Number(total_cost) / numParticipants : 0;
+    let runningAssigned = 0;
 
-    for (const p of targetParticipants) {
-      const calcResult = calculateParticipantShare(
-        { total_cost: Number(total_cost), start_date, end_date, allocation_model: modelToUse, assigned_participants: targetParticipants.map(tp => ({ participant_id: tp._id })) },
-        p,
-        participants,
-        trip
-      );
+    for (let idx = 0; idx < targetParticipants.length; idx++) {
+      const p = targetParticipants[idx];
+      const isLast = idx === targetParticipants.length - 1;
+      let shareAmount = 0;
+
+      if (modelToUse === 'equal') {
+        const perPerson = Math.floor((Number(total_cost) / targetParticipants.length) * 100) / 100;
+        shareAmount = isLast ? Math.round((Number(total_cost) - runningAssigned) * 100) / 100 : perPerson;
+        runningAssigned += perPerson;
+      } else {
+        const calcResult = calculateParticipantShare(
+          { total_cost: Number(total_cost), start_date, end_date, allocation_model: modelToUse, assigned_participants: targetParticipants.map(tp => ({ participant_id: tp._id })) },
+          p,
+          participants,
+          trip
+        );
+        shareAmount = calcResult.share;
+      }
+
       assigned.push({
         participant_id: p._id,
         share_calculation: {
@@ -59,9 +72,9 @@ router.post('/', auth, async (req, res) => {
           base_share: baseShare,
           participation_weight: 1,
           multiplier: p.tier_multiplier || 1,
-          final_share: calcResult.share
+          final_share: shareAmount
         },
-        amount_owed: calcResult.share,
+        amount_owed: shareAmount,
         quantity: 1
       });
     }
@@ -165,14 +178,26 @@ router.put('/:bid', auth, async (req, res) => {
       const modelToUse = booking.allocation_model || 'equal';
       const numParticipants = targetParticipants.length;
       const baseShare = numParticipants > 0 ? booking.total_cost / numParticipants : 0;
+      let runningAssigned = 0;
 
-      booking.assigned_participants = targetParticipants.map(p => {
-        const calcResult = calculateParticipantShare(
-          { total_cost: booking.total_cost, start_date: booking.start_date, end_date: booking.end_date, allocation_model: modelToUse, assigned_participants: targetParticipants.map(tp => ({ participant_id: tp._id })) },
-          p,
-          allParticipants,
-          trip
-        );
+      booking.assigned_participants = targetParticipants.map((p, idx) => {
+        const isLast = idx === numParticipants - 1;
+        let shareAmount = 0;
+
+        if (modelToUse === 'equal') {
+          const perPerson = Math.floor((Number(booking.total_cost) / numParticipants) * 100) / 100;
+          shareAmount = isLast ? Math.round((Number(booking.total_cost) - runningAssigned) * 100) / 100 : perPerson;
+          runningAssigned += perPerson;
+        } else {
+          const calcResult = calculateParticipantShare(
+            { total_cost: booking.total_cost, start_date: booking.start_date, end_date: booking.end_date, allocation_model: modelToUse, assigned_participants: targetParticipants.map(tp => ({ participant_id: tp._id })) },
+            p,
+            allParticipants,
+            trip
+          );
+          shareAmount = calcResult.share;
+        }
+
         return {
           participant_id: p._id,
           share_calculation: {
@@ -180,9 +205,9 @@ router.put('/:bid', auth, async (req, res) => {
             base_share: baseShare,
             participation_weight: 1,
             multiplier: p.tier_multiplier || 1,
-            final_share: calcResult.share
+            final_share: shareAmount
           },
-          amount_owed: calcResult.share,
+          amount_owed: shareAmount,
           quantity: 1
         };
       });

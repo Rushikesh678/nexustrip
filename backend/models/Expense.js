@@ -35,6 +35,8 @@ const ExpenseSchema = new mongoose.Schema({
   receiptUrl: { type: String, default: '' },
   aiParsed: { type: Boolean, default: false },
   aiConfidence: { type: Number, default: 0 },
+  isSideQuest: { type: Boolean, default: false },
+  sideQuestTitle: { type: String, default: '' },
 
   participants: [ExpenseParticipantSchema],
 

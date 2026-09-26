@@ -117,63 +117,65 @@ function calculateSettlement(trip, participants, expenses = [], payments = []) {
     is_balanced: true
   };
 
-  let sumOwed = 0;
-  let sumPaid = 0;
+  let sumNetBalances = 0;
 
   for (const p of participants) {
     const totalOwed = p.total_owed || 0;
     const totalPaid = p.total_paid || 0;
-    const netBalance = totalOwed - totalPaid; // Positive = owes money to group; Negative = owed refund from group
+    const netBalance = Math.round((p.balance || 0) * 100) / 100; // positive = owed money, negative = owes money
 
     settlement.balances.push({
       participant_id: p._id,
       name: p.name,
       total_owed: Math.round(totalOwed * 100) / 100,
       total_paid: Math.round(totalPaid * 100) / 100,
-      net_balance: Math.round(netBalance * 100) / 100
+      consumption_share: Math.round((p.consumption_share || totalOwed) * 100) / 100,
+      upfront_paid: Math.round((p.upfront_paid || totalPaid) * 100) / 100,
+      net_balance: netBalance
     });
 
-    sumOwed += totalOwed;
-    sumPaid += totalPaid;
+    sumNetBalances += netBalance;
   }
 
-  const diff = Math.abs(sumOwed - sumPaid);
-  if (diff > 0.05) {
-    settlement.validation_errors.push(`Balance sum mismatch: Total Owed ($${sumOwed.toFixed(2)}) ≠ Total Paid ($${sumPaid.toFixed(2)})`);
-  }
-
-  // Debtors owe money (net_balance > 0.01)
+  // Debtors owe money (net_balance < -0.01)
   const debtors = settlement.balances
-    .filter(b => b.net_balance > 0.01)
-    .map(b => ({ ...b, remaining: b.net_balance }))
-    .sort((a, b) => b.remaining - a.remaining);
-
-  // Creditors are owed money (net_balance < -0.01)
-  const creditors = settlement.balances
     .filter(b => b.net_balance < -0.01)
-    .map(b => ({ ...b, remaining: -b.net_balance }))
+    .map(b => ({ ...b, remaining: Math.round(-b.net_balance * 100) / 100 }))
     .sort((a, b) => b.remaining - a.remaining);
 
-  for (const debtor of debtors) {
-    for (const creditor of creditors) {
-      if (debtor.remaining <= 0.009) break;
-      if (creditor.remaining <= 0.009) continue;
+  // Creditors are owed money (net_balance > 0.01)
+  const creditors = settlement.balances
+    .filter(b => b.net_balance > 0.01)
+    .map(b => ({ ...b, remaining: Math.round(b.net_balance * 100) / 100 }))
+    .sort((a, b) => b.remaining - a.remaining);
 
-      const transfer = Math.min(debtor.remaining, creditor.remaining);
-      if (transfer > 0.009) {
-        const transferRounded = Math.round(transfer * 100) / 100;
-        settlement.transactions_required.push({
-          from_participant: debtor.participant_id,
-          to_participant: creditor.participant_id,
-          amount: transferRounded,
-          reason: `Trip Settlement for ${trip.name}`,
-          status: 'PENDING'
-        });
+  let dIdx = 0;
+  let cIdx = 0;
+  while (dIdx < debtors.length && cIdx < creditors.length) {
+    const debtor = debtors[dIdx];
+    const creditor = creditors[cIdx];
+    const transfer = Math.min(debtor.remaining, creditor.remaining);
+    const transferRounded = Math.round(transfer * 100) / 100;
 
-        debtor.remaining -= transferRounded;
-        creditor.remaining -= transferRounded;
-      }
+    if (transferRounded > 0.009) {
+      settlement.transactions_required.push({
+        from_participant: debtor.participant_id,
+        to_participant: creditor.participant_id,
+        amount: transferRounded,
+        reason: `Trip Settlement for ${trip.name}`,
+        status: 'PENDING'
+      });
+
+      debtor.remaining = Math.round((debtor.remaining - transferRounded) * 100) / 100;
+      creditor.remaining = Math.round((creditor.remaining - transferRounded) * 100) / 100;
     }
+
+    if (debtor.remaining <= 0.009) dIdx++;
+    if (creditor.remaining <= 0.009) cIdx++;
+  }
+
+  if (Math.abs(sumNetBalances) > 0.5) {
+    settlement.validation_errors.push(`Unallocated balance difference: ₹${Math.abs(sumNetBalances).toFixed(2)} (check for unpaid vendor bookings).`);
   }
 
   settlement.is_balanced = settlement.validation_errors.length === 0;
@@ -187,44 +189,53 @@ async function recalculateParticipantBalances(tripId) {
   const bookings = await Booking.find({ trip_id: tripId, status: { $ne: 'cancelled' } });
 
   for (const p of participants) {
-    let totalOwed = 0;
-    let totalPaid = 0;
+    let expensesPaid = 0;
+    let bookingsPaid = 0;
+    let expensesOwed = 0;
+    let bookingsOwed = 0;
+    let settlementPaid = 0;
+    let settlementReceived = 0;
 
     // From Expenses
     for (const exp of expenses) {
-      if (exp.payerId.toString() === p._id.toString()) {
-        totalPaid += exp.amount;
+      if (exp.payerId && exp.payerId.toString() === p._id.toString()) {
+        expensesPaid += exp.amount;
       }
-      const part = exp.participants?.find(pt => pt.memberId.toString() === p._id.toString());
+      const part = exp.participants?.find(pt => pt.memberId && pt.memberId.toString() === p._id.toString());
       if (part) {
-        totalOwed += part.share;
+        expensesOwed += part.share;
       }
     }
 
     // From Bookings
     for (const b of bookings) {
       if (b.paid_by && b.paid_by.toString() === p._id.toString()) {
-        totalPaid += b.amount_paid || b.total_cost;
+        bookingsPaid += b.amount_paid || b.total_cost;
       }
-      const assigned = b.assigned_participants?.find(ap => ap.participant_id.toString() === p._id.toString());
+      const assigned = b.assigned_participants?.find(ap => ap.participant_id && ap.participant_id.toString() === p._id.toString());
       if (assigned) {
-        totalOwed += assigned.amount_owed;
+        bookingsOwed += assigned.amount_owed;
       }
     }
 
-    // From Direct Payments
+    // From Direct Settlement Payments
     for (const pym of payments) {
-      if (pym.payer_id.toString() === p._id.toString()) {
-        totalPaid += pym.amount;
+      if (pym.payer_id && pym.payer_id.toString() === p._id.toString()) {
+        settlementPaid += pym.amount;
       }
-      if (pym.payee_id.toString() === p._id.toString()) {
-        totalOwed += pym.amount;
+      if (pym.payee_id && pym.payee_id.toString() === p._id.toString()) {
+        settlementReceived += pym.amount;
       }
     }
 
-    p.total_owed = Math.round(totalOwed * 100) / 100;
-    p.total_paid = Math.round(totalPaid * 100) / 100;
-    p.balance = Math.round((totalPaid - totalOwed) * 100) / 100;
+    const upfrontPaid = Math.round((expensesPaid + bookingsPaid) * 100) / 100;
+    const consumptionShare = Math.round((expensesOwed + bookingsOwed) * 100) / 100;
+
+    p.upfront_paid = upfrontPaid;
+    p.consumption_share = consumptionShare;
+    p.total_paid = Math.round((upfrontPaid + settlementPaid) * 100) / 100;
+    p.total_owed = Math.round((consumptionShare + settlementReceived) * 100) / 100;
+    p.balance = Math.round((p.total_paid - p.total_owed) * 100) / 100;
 
     await p.save();
   }
