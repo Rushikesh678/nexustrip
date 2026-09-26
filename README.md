@@ -1,7 +1,7 @@
 # 🌲 TripLedger — Collaborative Trip Planning & Expense Manager
 
 > **A modern financial ledger and trip planning application built with the MERN stack.**  
-> Designed with a vintage national-park poster aesthetic (`nexus` design system), robust cost-sharing models, AI-assisted receipt parsing, multi-currency support (including native **Indian Rupee ₹** & UPI), and automated minimum-transaction debt settlement.
+> Designed with a vintage national-park poster aesthetic (`nexus` design system), robust cost-sharing models, AI & OCR-assisted bill parsing, Google OAuth authentication, native **Indian Rupee (₹ / INR)** & UPI payment integration, and automated minimum-transaction debt settlement.
 
 ---
 
@@ -14,16 +14,18 @@
 ## 📋 Table of Contents
 1. [Overview & Product Vision](#-overview--product-vision)
 2. [Key Features](#-key-features)
-3. [Design System & UI Aesthetics (`nexus`)](#-design-system--ui-aesthetics-nexus)
-4. [Indian Currency (INR / ₹) & Payment Methods](#-indian-currency-inr----payment-methods)
-5. [Architecture & Tech Stack](#-architecture--tech-stack)
-6. [Directory Structure](#-directory-structure)
-7. [Database Schemas & Data Models](#-database-schemas--data-models)
-8. [API Endpoints Reference](#-api-endpoints-reference)
-9. [Cost-Sharing & Debt Simplification Algorithms](#-cost-sharing--debt-simplification-algorithms)
-10. [Setup & Running Locally](#-setup--running-locally)
-11. [Project Documentation Index](#-project-documentation-index)
-12. [AI Agent Maintenance Protocol](#-ai-agent-maintenance-protocol)
+3. [Recent Accomplishments & Updates](#-recent-accomplishments--updates)
+4. [Design System & UI Aesthetics (`nexus`)](#-design-system--ui-aesthetics-nexus)
+5. [Indian Currency (INR / ₹) & Payment Methods](#-indian-currency-inr----payment-methods)
+6. [AI & OCR Bill Parsing Engine](#-ai--ocr-bill-parsing-engine)
+7. [Architecture & Tech Stack](#-architecture--tech-stack)
+8. [Directory Structure](#-directory-structure)
+9. [Database Schemas & Data Models](#-database-schemas--data-models)
+10. [API Endpoints Reference](#-api-endpoints-reference)
+11. [Cost-Sharing & Debt Simplification Algorithms](#-cost-sharing--debt-simplification-algorithms)
+12. [Setup & Running Locally](#-setup--running-locally)
+13. [Project Documentation Index](#-project-documentation-index)
+14. [AI Agent Maintenance Protocol](#-ai-agent-maintenance-protocol)
 
 ---
 
@@ -32,7 +34,7 @@
 **TripLedger** solves the messy reality of group travel finances. Unlike simple expense splitters, TripLedger accommodates variable arrival/departure dates, weighted accommodation nights, tiered cost multipliers, refunds, mid-trip money requests, and multi-currency conversions.
 
 ### Core Philosophy
-- **Transparent Calculations:** AI assists with receipt scanning, but financial decisions remain in the hands of users.
+- **Transparent Calculations:** AI & OCR assist with receipt scanning, but financial decisions remain fully controllable and editable by users.
 - **Fair Split Models:** Support for equal splits, stay-duration weighting, custom fixed amounts, and room occupancy calculations.
 - **Minimum Transaction Settlement:** Reduces 20 criss-cross debts into a concise list of optimized transfers.
 - **Vibrant Aesthetic:** Built using the `nexus` design theme — warm paper cream canvas paired with deep forest ink and vivid meadow green interactive elements.
@@ -41,21 +43,45 @@
 
 ## ✨ Key Features
 
-- **Authenticated Trip Workspaces:** Secure JWT user accounts with multi-trip support, roles (Organizer vs Participant), and invite management.
+- **Authentication & Security:**
+  - Standard email/password registration & login with JSON Web Tokens (JWT).
+  - One-click **Google OAuth 2.0** authentication (`@react-oauth/google` & `google-auth-library`).
 - **Flexible Cost Sharing:**
   - **Equal Split:** Split expenses evenly among participants.
   - **Weighted Nights:** Pro-rate accommodation based on participant arrival/departure dates.
   - **Tiered Multipliers:** Assign multipliers (e.g. VIP 1.5x, Standard 1.0x, Budget 0.75x) for custom cost tiers.
   - **Occupancy-Based:** Split room costs based on occupant count per room/unit.
   - **Custom / Percentage / By-Item:** Pinpoint individual shares per expense item.
-- **AI Receipt Scanning:** Upload receipt images (`Multer`) to automatically extract merchant, date, total, and itemized splits.
+- **AI & OCR Bill Parsing Engine:**
+  - Scan bill images (`PNG`, `JPG`) using **Tesseract.js** OCR.
+  - Parse digital receipt PDFs using **pdf-parse**.
+  - Extract structured merchant names, total amounts, dates, categories, and itemized splits via **Groq AI** (`llama-3.3-70b-versatile` / `llama-3.1-8b-instant`) with automatic fallback regex pattern matching.
 - **Settlement Engine:**
   - Dynamic balance calculations (`total_paid` vs `total_owed`).
   - Greedy debt-simplification algorithm to settle trip debts with minimal transfers.
-  - Direct payment settlement tracking via **UPI ID**, **Venmo**, and **PayPal**.
+  - Direct payment settlement tracking via **UPI ID** (Google Pay, PhonePe, Paytm), **Venmo**, and **PayPal**.
 - **Audit Logging & History:** Comprehensive edit history tracking for expenses and participant changes.
 - **PDF Report Generation:** Export formatted PDF trip ledger summaries complete with member breakdowns and settlement instructions (powered by `pdfkit`).
-- **Interactive UI & Celebrations:** Built with custom modal views, tabbed workspace navigation, dynamic toast feedback, and confetti effects (`canvas-confetti`).
+- **Interactive UI & Celebrations:** Custom modal views, tabbed workspace navigation, dynamic toast feedback, and confetti effects (`canvas-confetti`).
+
+---
+
+## 🚀 Recent Accomplishments & Updates
+
+Here is a summary of features implemented across recent development milestones:
+
+1. **Bill Parsing & Receipt Scanner Feature:**
+   - Added backend `receiptService.js` combining Tesseract OCR, PDF parsing, and Groq LLM extraction.
+   - Created `/api/v1/trips/:tripId/expenses/scan-receipt` file upload endpoint (`Multer`).
+   - Integrated drag-and-drop receipt scanning modal into `TripWorkspace.jsx` to auto-fill title, amount, category, date, and participants.
+2. **Google OAuth 2.0 Authentication:**
+   - Implemented Google Sign-In workflow on both client (`@react-oauth/google`) and server (`google-auth-library`).
+   - Integrated `POST /api/v1/auth/google` endpoint for seamless single sign-on.
+3. **Indian Currency Integration (₹ / INR):**
+   - Configured native **Indian Rupee (INR / ₹)** formatting according to `en-IN` standards.
+   - Added **UPI ID** payment support for Indian payment apps (GPay, PhonePe, Paytm).
+4. **Git Repository & Build Cleanup:**
+   - Organized root, backend, and frontend `.gitignore` rules to exclude dependencies, local `.env` configs, binary OCR trained data files (`*.traineddata`), build output directories, and scratch files.
 
 ---
 
@@ -74,10 +100,6 @@ TripLedger adheres strictly to the **nexus** design specification (`DESIGN.md`):
 | **Charcoal** | `#333333` | `--color-charcoal` | Dark body text on cream surfaces |
 | **River Blue** | `#73d3eb` | `--color-river-blue` | Data visualizations, water/sky highlights |
 
-### Typography
-- **Headlines / Display:** `Deacon`, `Bebas Neue`, or `Oswald` (ultra-condensed sans, line-height ~0.85).
-- **Body / UI:** `Graphik` or `Inter` (clean humanist geometric sans).
-
 ---
 
 ## 🇮🇳 Indian Currency (INR / ₹) & Payment Methods
@@ -93,13 +115,34 @@ TripLedger includes native support for **Indian Rupee (INR / ₹)** and Indian d
 
 ---
 
+## 🤖 AI & OCR Bill Parsing Engine
+
+TripLedger features a multi-layer bill processing pipeline designed for speed and accuracy:
+
+```mermaid
+flowchart LR
+    File[Receipt Image or PDF] --> Multer[Multer Upload Handler]
+    Multer --> TypeCheck{File Type}
+    TypeCheck -->|PDF| PDFParse[pdf-parse Extraction]
+    TypeCheck -->|Image PNG/JPG| Tesseract[Tesseract.js OCR Engine]
+    PDFParse --> RawText[Extracted Raw Text]
+    Tesseract --> RawText
+    RawText --> Groq[Groq AI LLM Parsing]
+    Groq -->|Success| StructuredJSON[Structured Receipt Data]
+    Groq -->|Error / Fallback| RegexParser[Regex Rule Parser]
+    RegexParser --> StructuredJSON
+    StructuredJSON --> Client[Populate Frontend Expense Form]
+```
+
+---
+
 ## 🏗 Architecture & Tech Stack
 
 ```mermaid
 flowchart TD
-    Client[React 18 + Vite Frontend] <-->|REST API + JWT| Server[Node.js + Express Backend]
+    Client[React 18 + Vite Frontend] <-->|REST API + JWT / OAuth| Server[Node.js + Express Backend]
     Server <-->|Mongoose ODM| DB[(MongoDB Database)]
-    Server -->|Multer| Uploads[Uploads / Receipts Storage]
+    Server -->|Multer + Tesseract + Groq| OCR[Receipt Parsing & AI Service]
     Server -->|PDFKit| Reports[PDF Report Generator]
 ```
 
@@ -107,14 +150,18 @@ flowchart TD
 - **Frontend:**
   - React 18 (Vite build tool)
   - React Router DOM v6
+  - `@react-oauth/google` for Google Sign-In
   - Lucide React Icons
   - Canvas Confetti
   - Custom Vanilla CSS (`index.css` design system)
 - **Backend:**
   - Node.js & Express framework
   - MongoDB & Mongoose ORM
-  - JSON Web Tokens (`jsonwebtoken`) & `bcryptjs`
-  - `multer` for multipart image uploads
+  - JSON Web Tokens (`jsonwebtoken`), `bcryptjs`, `google-auth-library`
+  - `tesseract.js` (OCR image text extraction)
+  - `pdf-parse` (PDF document text extraction)
+  - `groq-sdk` (Structured AI bill extraction using Llama 3 models)
+  - `multer` for multipart receipt file uploads
   - `pdfkit` for server-side PDF document rendering
   - `morgan` HTTP logger
 
@@ -148,11 +195,11 @@ pillai/
 │   │   ├── LedgerEntry.js
 │   │   └── AuditLog.js
 │   ├── routes/                        # REST endpoint controllers
-│   │   ├── authRoutes.js              # /api/v1/auth
+│   │   ├── authRoutes.js              # /api/v1/auth (Includes Google OAuth)
 │   │   ├── tripRoutes.js              # /api/v1/trips
 │   │   ├── participantRoutes.js       # /api/v1/trips/:id/participants
 │   │   ├── bookingRoutes.js           # /api/v1/trips/:id/bookings
-│   │   ├── expenseRoutes.js           # /api/v1/trips/:id/expenses & /api/v1/receipts
+│   │   ├── expenseRoutes.js           # /api/v1/trips/:id/expenses (Includes /scan-receipt)
 │   │   ├── paymentRoutes.js           # /api/v1/trips/:id/payments
 │   │   ├── refundRoutes.js            # /api/v1/trips/:id/refunds
 │   │   ├── settlementRoutes.js        # /api/v1/trips/:id/settlement
@@ -161,7 +208,7 @@ pillai/
 │   │   └── reportRoutes.js            # /api/v1/trips/:id/report (PDF generation)
 │   ├── services/                      # Business logic & algorithms
 │   │   ├── calculationService.js      # Debt simplification & pro-rata engines
-│   │   ├── receiptService.js          # AI OCR receipt parser simulation
+│   │   ├── receiptService.js          # Tesseract + Groq AI + PDF receipt parser
 │   │   └── reportService.js           # PDF layout & document compilation
 │   ├── uploads/                       # Static receipt storage directory
 │   ├── .env                           # Backend environment variables
@@ -176,10 +223,10 @@ pillai/
     │   │   └── AuthContext.jsx
     │   ├── pages/                     # Full views / page routes
     │   │   ├── LandingPage.jsx        # Nexus aesthetic landing page
-    │   │   ├── LoginPage.jsx          # Login view
-    │   │   ├── RegisterPage.jsx       # Registration view
+    │   │   ├── LoginPage.jsx          # Login view (Email & Google OAuth)
+    │   │   ├── RegisterPage.jsx       # Registration view (Email & Google OAuth)
     │   │   ├── TripsPage.jsx          # Trip list & creation modal
-    │   │   └── TripWorkspace.jsx      # Core trip management workspace
+    │   │   └── TripWorkspace.jsx      # Core workspace + receipt scanner modal
     │   ├── services/
     │   │   └── api.js                 # Axios/Fetch API client wrapper
     │   ├── App.jsx                    # Route mapping & layout wrapper
@@ -195,7 +242,7 @@ pillai/
 
 | Model | Primary Purpose | Key Fields |
 | :--- | :--- | :--- |
-| **`User`** | Platform user authentication | `name`, `email`, `password`, `default_currency` |
+| **`User`** | Platform user authentication | `name`, `email`, `password`, `googleId`, `avatar`, `default_currency` |
 | **`Trip`** | Core trip workspace entity | `name`, `destination`, `start_date`, `end_date`, `currency`, `budget`, `cost_sharing_model`, `organizer_id` |
 | **`Participant`** | Members assigned to a trip | `trip_id`, `user_id`, `name`, `email`, `status`, `arrival_date`, `departure_date`, `cost_tier`, `tier_multiplier`, `total_owed`, `total_paid`, `balance`, `upi_id`, `venmo_handle` |
 | **`Expense`** | Individual expense items | `tripId`, `payerId`, `amount`, `currency`, `category`, `participants` (shares), `receiptUrl`, `aiParsed`, `status` |
@@ -212,7 +259,8 @@ pillai/
 
 ### Authentication (`/api/v1/auth`)
 - `POST /register` — Create new user account.
-- `POST /login` — Authenticate user and receive JWT token.
+- `POST /login` — Authenticate user with email/password and receive JWT token.
+- `POST /google` — Authenticate or sign up user using Google OAuth ID token.
 - `GET /me` — Retrieve current authenticated user profile.
 
 ### Trip Workspaces (`/api/v1/trips`)
@@ -228,12 +276,12 @@ pillai/
 - `PUT /:participantId` — Update member status, arrival/departure dates, or UPI/Venmo handles.
 - `DELETE /:participantId` — Remove participant from trip.
 
-### Expenses & Receipts (`/api/v1/trips/:tripId/expenses` & `/api/v1/receipts`)
+### Expenses & Receipts (`/api/v1/trips/:tripId/expenses`)
 - `GET /` — Fetch all trip expenses.
 - `POST /` — Create new expense entry with custom split shares.
+- `POST /scan-receipt` — Upload receipt file (`receipt` field, image or PDF) for OCR and Groq AI parsing.
 - `PUT /:expenseId` — Edit expense details (logs entry into edit history).
 - `DELETE /:expenseId` — Soft-delete expense item.
-- `POST /api/v1/receipts/parse` — Upload receipt image file (`receipt` field) for AI parsing.
 
 ### Settlements & Debt Simplification (`/api/v1/trips/:tripId/settlement`)
 - `GET /` — Calculate current net balances and minimum required transactions.
@@ -268,6 +316,7 @@ A greedy algorithm pairs the largest debtor with the largest creditor, creating 
 - npm or yarn
 
 ### 1. Environment Configuration
+
 Create a `.env` file in `backend/`:
 
 ```env
@@ -275,6 +324,14 @@ PORT=5000
 MONGO_URI=mongodb://localhost:27017/tripledger
 JWT_SECRET=your_super_secret_jwt_key_here
 CLIENT_URL=http://localhost:5173
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+Create a `.env` file in `frontend/`:
+
+```env
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 ```
 
 ### 2. Backend Setup
