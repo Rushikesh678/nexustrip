@@ -1,0 +1,76 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+
+const getHeaders = (isMultipart = false) => {
+  const token = localStorage.getItem('tripledger_token');
+  const headers = {};
+  if (!isMultipart) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
+const handleResponse = async (res) => {
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || `HTTP error! Status: ${res.status}`);
+  }
+  return data;
+};
+
+export const api = {
+  // Auth
+  register: (userData) => fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(userData) }).then(handleResponse),
+  login: (credentials) => fetch(`${API_BASE_URL}/auth/login`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(credentials) }).then(handleResponse),
+  getMe: () => fetch(`${API_BASE_URL}/auth/me`, { headers: getHeaders() }).then(handleResponse),
+
+  // Trips
+  getTrips: () => fetch(`${API_BASE_URL}/trips`, { headers: getHeaders() }).then(handleResponse),
+  getTripById: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}`, { headers: getHeaders() }).then(handleResponse),
+  createTrip: (tripData) => fetch(`${API_BASE_URL}/trips`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(tripData) }).then(handleResponse),
+  updateTrip: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  deleteTrip: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse),
+
+  // Participants
+  getParticipants: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/participants`, { headers: getHeaders() }).then(handleResponse),
+  addParticipant: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/participants`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  updateParticipant: (tripId, pid, data) => fetch(`${API_BASE_URL}/trips/${tripId}/participants/${pid}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  departParticipant: (tripId, pid, data) => fetch(`${API_BASE_URL}/trips/${tripId}/participants/${pid}/depart`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  removeParticipant: (tripId, pid) => fetch(`${API_BASE_URL}/trips/${tripId}/participants/${pid}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse),
+
+  // Bookings
+  getBookings: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/bookings`, { headers: getHeaders() }).then(handleResponse),
+  createBooking: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/bookings`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  updateBooking: (tripId, bid, data) => fetch(`${API_BASE_URL}/trips/${tripId}/bookings/${bid}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  cancelBooking: (tripId, bid, data) => fetch(`${API_BASE_URL}/trips/${tripId}/bookings/${bid}`, { method: 'DELETE', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+
+  // Expenses
+  getExpenses: (tripId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return fetch(`${API_BASE_URL}/trips/${tripId}/expenses?${query}`, { headers: getHeaders() }).then(handleResponse);
+  },
+  createExpense: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/expenses`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  updateExpense: (tripId, eid, data) => fetch(`${API_BASE_URL}/trips/${tripId}/expenses/${eid}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  deleteExpense: (tripId, eid) => fetch(`${API_BASE_URL}/trips/${tripId}/expenses/${eid}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse),
+  parseReceipt: (formData) => fetch(`${API_BASE_URL}/receipts/parse-receipt`, { method: 'POST', headers: getHeaders(true), body: formData }).then(handleResponse),
+
+  // Payments & Refunds
+  getPayments: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/payments`, { headers: getHeaders() }).then(handleResponse),
+  recordPayment: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/payments`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  disputePayment: (tripId, pid, data) => fetch(`${API_BASE_URL}/trips/${tripId}/payments/${pid}/dispute`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  getRefunds: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/refunds`, { headers: getHeaders() }).then(handleResponse),
+  issueRefund: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/refunds`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+
+  // Settlement
+  getSettlement: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/settlement`, { headers: getHeaders() }).then(handleResponse),
+  finalizeSettlement: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/settlement/finalize`, { method: 'POST', headers: getHeaders() }).then(handleResponse),
+  recordSettlementPayment: (tripId, data) => fetch(`${API_BASE_URL}/trips/${tripId}/settlement/record-payment`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+
+  // Ledger & Audit & Reports
+  getLedger: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/ledger`, { headers: getHeaders() }).then(handleResponse),
+  getAuditLogs: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/audit`, { headers: getHeaders() }).then(handleResponse),
+  getReport: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/report`, { headers: getHeaders() }).then(handleResponse),
+  downloadReportPDFUrl: (tripId) => `${API_BASE_URL}/trips/${tripId}/report/pdf`
+};
