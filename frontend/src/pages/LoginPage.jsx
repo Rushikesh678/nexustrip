@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { Compass, KeyRound, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 
@@ -8,7 +9,7 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -27,6 +28,27 @@ export const LoginPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await loginWithGoogle(credentialResponse.credential);
+      if (res.success) {
+        navigate('/trips');
+      } else {
+        setError(res.message || 'Google login failed.');
+      }
+    } catch (err) {
+      setError(err.message || 'Google login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google Sign In failed or was closed.');
   };
 
   const handleDemoLogin = async (demoEmail) => {
@@ -51,7 +73,7 @@ export const LoginPage = () => {
           <span className="sticker-badge">AUTHORIZATION PASS</span>
         </div>
 
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
             width: '54px',
             height: '54px',
@@ -89,6 +111,24 @@ export const LoginPage = () => {
             {error}
           </div>
         )}
+
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '16px' }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            theme="outline"
+            size="large"
+            shape="rectangular"
+            text="signin_with"
+            width="380"
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-sage-border)' }} />
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', letterSpacing: '0.08em' }}>OR SIGN IN WITH EMAIL</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-sage-border)' }} />
+        </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>

@@ -24,6 +24,7 @@ export const api = {
   // Auth
   register: (userData) => fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(userData) }).then(handleResponse),
   login: (credentials) => fetch(`${API_BASE_URL}/auth/login`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(credentials) }).then(handleResponse),
+  googleLogin: (credential) => fetch(`${API_BASE_URL}/auth/google`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ credential }) }).then(handleResponse),
   getMe: () => fetch(`${API_BASE_URL}/auth/me`, { headers: getHeaders() }).then(handleResponse),
 
   // Trips

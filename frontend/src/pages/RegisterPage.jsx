@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { Compass, User, Mail, KeyRound, ArrowRight } from 'lucide-react';
 
@@ -14,7 +15,7 @@ export const RegisterPage = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -39,6 +40,27 @@ export const RegisterPage = () => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await loginWithGoogle(credentialResponse.credential);
+      if (res.success) {
+        navigate('/trips');
+      } else {
+        setError(res.message || 'Google sign up failed.');
+      }
+    } catch (err) {
+      setError(err.message || 'Google sign up failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google Sign Up failed or was closed.');
+  };
+
   return (
     <div style={{
       minHeight: 'calc(100vh - 68px)',
@@ -56,7 +78,7 @@ export const RegisterPage = () => {
           <span className="sticker-badge">NEW EXPLORER PASS</span>
         </div>
 
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
             width: '54px',
             height: '54px',
@@ -94,6 +116,24 @@ export const RegisterPage = () => {
             {error}
           </div>
         )}
+
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '16px' }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            theme="outline"
+            size="large"
+            shape="rectangular"
+            text="signup_with"
+            width="400"
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-sage-border)' }} />
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', letterSpacing: '0.08em' }}>OR REGISTER WITH EMAIL</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-sage-border)' }} />
+        </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>

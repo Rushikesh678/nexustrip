@@ -31,6 +31,15 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
+  const loginWithGoogle = async (credential) => {
+    const res = await api.googleLogin(credential);
+    if (res.token) {
+      localStorage.setItem('tripledger_token', res.token);
+      setUser(res.user);
+    }
+    return res;
+  };
+
   const register = async (userData) => {
     const res = await api.register(userData);
     if (res.token) {
@@ -46,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );
