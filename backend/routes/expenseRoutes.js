@@ -286,17 +286,34 @@ router.delete('/:eid', auth, async (req, res) => {
   }
 });
 
-// POST /api/v1/receipts/parse - AI Receipt OCR parser simulation
+// POST /api/v1/receipts/parse-receipt - Production Groq AI Receipt & Bill Parser
 router.post('/parse-receipt', auth, upload.single('receipt'), async (req, res) => {
   try {
     const file = req.file;
-    const fileName = file ? file.originalname : req.body.fileName || 'receipt.jpg';
-    const parsedData = await parseReceiptData(file ? file.buffer : null, fileName, file ? file.mimetype : 'image/jpeg');
-    res.json({ success: true, extractedData: parsedData });
+    const fileName = file ? file.originalname : (req.body.fileName || 'receipt.jpg');
+    const mimeType = file ? file.mimetype : 'image/jpeg';
+    const rawTextInput = req.body.rawText || req.body.text || '';
+
+    const parsedData = await parseReceiptData(
+      file ? file.buffer : null,
+      fileName,
+      mimeType,
+      rawTextInput
+    );
+
+    res.json({
+      success: true,
+      extractedData: parsedData,
+      message: 'Receipt parsed successfully using Groq AI.'
+    });
   } catch (err) {
-    console.error('Parse receipt error:', err);
-    res.status(500).json({ success: false, message: 'Failed to process receipt with AI parser.' });
+    console.error('[Parse Receipt API Error]:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to process receipt with AI parser.'
+    });
   }
 });
+
 
 module.exports = router;

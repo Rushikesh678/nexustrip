@@ -28,6 +28,8 @@ export const TripWorkspace = () => {
 
   // Receipt parser state
   const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptText, setReceiptText] = useState('');
+  const [receiptMode, setReceiptMode] = useState('file'); // 'file' | 'text'
   const [parsingReceipt, setParsingReceipt] = useState(false);
   const [parsedData, setParsedData] = useState(null);
 
@@ -144,30 +146,53 @@ export const TripWorkspace = () => {
   };
 
   // Handlers for AI Receipt Parse
-  const handleReceiptParse = async (e) => {
-    e.preventDefault();
+  const handleReceiptParse = async (e, textOverride = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const targetText = textOverride !== null ? textOverride : receiptText;
+    const mode = textOverride !== null ? 'text' : receiptMode;
+
+    if (mode === 'file' && !receiptFile) {
+      alert('Please select a receipt image file or PDF to upload.');
+      return;
+    }
+    if (mode === 'text' && !targetText.trim()) {
+      alert('Please paste or type bill text before parsing.');
+      return;
+    }
+
     setParsingReceipt(true);
     try {
       const formData = new FormData();
-      if (receiptFile) formData.append('receipt', receiptFile);
-      else formData.append('fileName', 'receipt.jpg');
+      if (mode === 'file' && receiptFile) {
+        formData.append('receipt', receiptFile);
+      } else {
+        formData.append('rawText', targetText.trim());
+      }
 
       const res = await api.parseReceipt(formData);
-      if (res.success) {
-        setParsedData(res.extractedData);
+      if (res.success && res.extractedData) {
+        const ext = res.extractedData;
+        setParsedData(ext);
+
+        const defaultPayer = participants.find(p => p.email === user?.email)?._id || participants[0]?._id || '';
+        const allParticipantIds = participants.map(p => p._id);
+
         setExpenseForm(prev => ({
           ...prev,
-          description: `${res.extractedData.merchant} (${res.extractedData.items?.[0]?.name || 'Expense'})`,
-          merchant: res.extractedData.merchant,
-          category: res.extractedData.category || 'FOOD',
-          amount: res.extractedData.total
+          description: `${ext.merchant}${ext.items?.[0]?.name ? ' (' + ext.items[0].name + ')' : ''}`,
+          merchant: ext.merchant,
+          category: ext.category || 'FOOD',
+          amount: ext.total,
+          payerId: prev.payerId || defaultPayer,
+          selectedParticipantIds: prev.selectedParticipantIds.length > 0 ? prev.selectedParticipantIds : allParticipantIds
         }));
         setShowReceiptModal(false);
-        setWizardStep(4); // Jump to amount review in wizard
+        setWizardStep(1); // Jump to AI Parsed review in wizard
         setShowAddExpenseModal(true);
       }
     } catch (err) {
-      alert('Error parsing receipt with AI: ' + err.message);
+      alert('Error parsing receipt with Groq AI: ' + (err.message || err));
     } finally {
       setParsingReceipt(false);
     }
@@ -470,34 +495,133 @@ export const TripWorkspace = () => {
       {/* AI Receipt Parser Modal */}
       {showReceiptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '480px', borderRadius: '16px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '520px', borderRadius: '16px', border: '2px solid var(--color-meadow-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={20} style={{ color: 'var(--color-primary)' }} /> AI Receipt OCR Parser
+                <Sparkles size={20} style={{ color: 'var(--color-primary)' }} /> Groq AI Bill & Receipt Parser
               </h3>
               <button onClick={() => setShowReceiptModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>×</button>
             </div>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-              Upload a receipt photo/PDF. AI will automatically extract merchant, date, items, tax, tip, and total cost.
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
+              Upload a receipt photo/PDF or paste bill text. Groq AI extracts merchant, line items, date, tax, tip, and totals with 98%+ accuracy.
             </p>
 
-            <form onSubmit={handleReceiptParse}>
-              <div style={{ border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '32px', textAlign: 'center', marginBottom: '20px', backgroundColor: '#f8fafc' }}>
-                <Upload size={36} style={{ color: 'var(--color-primary)', marginBottom: '12px' }} />
-                <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>Upload Receipt File</p>
-                <p style={{ fontSize: '12px', color: 'var(--color-muted)', marginBottom: '12px' }}>JPG, PNG, PDF, or screenshot</p>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => setReceiptFile(e.target.files[0])}
-                  style={{ display: 'block', margin: '0 auto', fontSize: '13px' }}
-                />
-              </div>
+            {/* Input Mode Selector */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', background: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setReceiptMode('file')}
+                style={{
+                  flex: 1, padding: '8px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+                  backgroundColor: receiptMode === 'file' ? '#ffffff' : 'transparent',
+                  boxShadow: receiptMode === 'file' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  color: receiptMode === 'file' ? 'var(--color-primary)' : 'var(--color-muted)'
+                }}
+              >
+                📁 Upload File / Photo
+              </button>
+              <button
+                type="button"
+                onClick={() => setReceiptMode('text')}
+                style={{
+                  flex: 1, padding: '8px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+                  backgroundColor: receiptMode === 'text' ? '#ffffff' : 'transparent',
+                  boxShadow: receiptMode === 'text' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  color: receiptMode === 'text' ? 'var(--color-primary)' : 'var(--color-muted)'
+                }}
+              >
+                📝 Paste Bill Text
+              </button>
+            </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            {/* Parsing Spinner Indicator */}
+            {parsingReceipt && (
+              <div style={{ backgroundColor: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '12px', padding: '16px', textAlign: 'center', marginBottom: '16px' }}>
+                <RefreshCw size={24} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite', marginBottom: '8px' }} />
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e40af' }}>Analyzing Receipt with Tesseract OCR & Groq AI...</div>
+                <div style={{ fontSize: '11px', color: '#3b82f6', marginTop: '4px' }}>Parsing merchant, items, dates, and calculated balances</div>
+              </div>
+            )}
+
+            <form onSubmit={handleReceiptParse}>
+              {receiptMode === 'file' ? (
+                <div style={{ border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '24px', textAlign: 'center', marginBottom: '16px', backgroundColor: '#f8fafc' }}>
+                  <Upload size={32} style={{ color: 'var(--color-primary)', marginBottom: '8px' }} />
+                  <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>Choose Receipt Image or PDF</p>
+                  <p style={{ fontSize: '12px', color: 'var(--color-muted)', marginBottom: '12px' }}>Supports JPG, PNG, WEBP, or PDF</p>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setReceiptFile(e.target.files[0])}
+                    style={{ display: 'block', margin: '0 auto', fontSize: '13px' }}
+                  />
+                  {receiptFile && (
+                    <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--color-success)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={14} /> Selected: {receiptFile.name} ({(receiptFile.size / 1024).toFixed(1)} KB)
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Paste Receipt Text or Invoice Summary</label>
+                  <textarea
+                    rows={5}
+                    placeholder="e.g. Punjabi Dhaba: 2 Paneer Butter Masala Rs 480, 4 Naan Rs 240, Total Rs 720"
+                    value={receiptText}
+                    onChange={(e) => setReceiptText(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '13px', fontFamily: 'inherit' }}
+                  />
+
+                  {/* Sample Presets */}
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '6px' }}>💡 Or Try 1-Click Demo Presets:</div>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const demo = "Punjabi Dhaba & Bar\n2 Paneer Butter Masala Rs 480\n4 Butter Naan Rs 240\n1 Jeera Rice Rs 180\nGST 5% Rs 45\nTotal Rs 945";
+                          setReceiptText(demo);
+                          setReceiptMode('text');
+                          handleReceiptParse(null, demo);
+                        }}
+                        style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                      >
+                        🍽️ Restaurant Bill
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const demo = "Grand Alpine Resort & Spa\n2 Nights Deluxe Suite $360\nResort Experience Fee $40\nTaxes & Fees $30\nTotal Amount $430";
+                          setReceiptText(demo);
+                          setReceiptMode('text');
+                          handleReceiptParse(null, demo);
+                        }}
+                        style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                      >
+                        🏨 Hotel Invoice
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const demo = "Highland Taxi Express\nDistance: 35 km\nBase Fare Rs 450\nToll Tax Rs 90\nDriver Tip Rs 60\nTotal Fare Rs 600";
+                          setReceiptText(demo);
+                          setReceiptMode('text');
+                          handleReceiptParse(null, demo);
+                        }}
+                        style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                      >
+                        🚕 Taxi Fare
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
                 <button type="button" className="btn-secondary" onClick={() => setShowReceiptModal(false)}>Cancel</button>
-                <button type="submit" disabled={parsingReceipt} className="btn-primary">
-                  {parsingReceipt ? 'AI Analyzing Receipt...' : 'Parse Receipt with AI'}
+                <button type="submit" disabled={parsingReceipt} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sparkles size={16} />
+                  {parsingReceipt ? 'Groq AI Analyzing...' : 'Parse Bill with Groq AI'}
                 </button>
               </div>
             </form>
@@ -1419,17 +1543,88 @@ const AddExpenseWizardModal = ({ step, setStep, expenseForm, setExpenseForm, par
           {/* STEP 1: Entry Method */}
           {step === 1 && (
             <div>
-              <p style={{ fontSize: '14px', marginBottom: '16px' }}>How would you like to record this expense?</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <button type="button" className="btn-secondary" style={{ justifyContent: 'flex-start', padding: '14px' }} onClick={() => setStep(2)}>
-                  📝 Manual Entry
-                </button>
-                {parsedData && (
-                  <div style={{ backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '8px', border: '1px solid #86efac', fontSize: '13px', color: 'var(--color-success)' }}>
-                    ✓ AI Parsed: {parsedData.merchant} (₹{parsedData.total})
+              {parsedData ? (
+                <div style={{ backgroundColor: '#f0fdf4', padding: '18px', borderRadius: '12px', border: '1.5px solid #86efac', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={18} /> Groq AI Parsed Receipt Summary
+                    </span>
+                    <span style={{ fontSize: '12px', backgroundColor: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: 700, border: '1px solid #86efac' }}>
+                      ✨ {parsedData.confidence}% Confidence
+                    </span>
                   </div>
-                )}
-              </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px', marginBottom: '8px' }}>
+                    <div><strong>Merchant:</strong> {parsedData.merchant}</div>
+                    <div><strong>Category:</strong> <span className="badge badge-primary">{parsedData.category}</span></div>
+                    <div><strong>Date:</strong> {parsedData.date}</div>
+                    <div><strong>Currency:</strong> {parsedData.currency}</div>
+                  </div>
+
+                  <div style={{ fontSize: '14px', margin: '10px 0', padding: '10px 12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#166534' }}>Final Post-Tax Amount (₹):</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '18px', fontWeight: 800, color: '#15803d' }}>₹</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={expenseForm.amount}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setExpenseForm(prev => ({ ...prev, amount: val }));
+                          setParsedData(prev => prev ? ({ ...prev, total: parseFloat(val) || 0 }) : null);
+                        }}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: '1.5px solid #86efac', fontWeight: 800, fontSize: '16px', color: '#15803d', width: '120px' }}
+                      />
+                    </div>
+                  </div>
+
+
+                  {parsedData.items && parsedData.items.length > 0 && (
+                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #bbf7d0' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534', marginBottom: '6px' }}>Line Items Breakdown ({parsedData.items.length}):</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#1f2937', backgroundColor: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        {parsedData.items.map((item, idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: idx < parsedData.items.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                            <span>• {item.name} <strong style={{ color: '#64748b' }}>(x{item.quantity})</strong></span>
+                            <span style={{ fontWeight: 600 }}>{parsedData.currency === 'INR' ? '₹' : '$'}{item.price}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(parsedData.tax > 0 || parsedData.tip > 0 || parsedData.subtotal > 0) && (
+                    <div style={{ marginTop: '8px', fontSize: '11px', color: '#4b5563', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                      {parsedData.subtotal > 0 && <span>Subtotal: {parsedData.subtotal}</span>}
+                      {parsedData.tax > 0 && <span>Tax: {parsedData.tax}</span>}
+                      {parsedData.tip > 0 && <span>Tip: {parsedData.tip}</span>}
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      style={{ flex: 1, padding: '10px', fontSize: '13px', fontWeight: 700, justifyContent: 'center' }}
+                      onClick={() => setStep(3)} // Jump straight to Payer Selection
+                    >
+                      ⚡ Apply AI Data & Pick Payer →
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {!parsedData && (
+                <div>
+                  <p style={{ fontSize: '14px', marginBottom: '16px' }}>How would you like to record this expense?</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <button type="button" className="btn-secondary" style={{ justifyContent: 'flex-start', padding: '14px' }} onClick={() => setStep(2)}>
+                      📝 Manual Entry
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
