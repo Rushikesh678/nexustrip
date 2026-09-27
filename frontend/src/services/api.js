@@ -83,7 +83,39 @@ export const api = {
   getLedger: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/ledger`, { headers: getHeaders() }).then(handleResponse),
   getAuditLogs: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/audit`, { headers: getHeaders() }).then(handleResponse),
   getReport: (tripId) => fetch(`${API_BASE_URL}/trips/${tripId}/report`, { headers: getHeaders() }).then(handleResponse),
-  downloadReportPDFUrl: (tripId) => `${API_BASE_URL}/trips/${tripId}/report/pdf`,
+  downloadReportPDF: async (tripId, tripName = 'Trip') => {
+    const res = await fetch(`${API_BASE_URL}/trips/${tripId}/report/pdf`, {
+      headers: getHeaders()
+    });
+    if (!res.ok) {
+      let errMsg = `Failed to download PDF report (${res.status})`;
+      try {
+        const errJson = await res.json();
+        if (errJson.message) errMsg = errJson.message;
+      } catch (e) {
+        try {
+          const errText = await res.text();
+          if (errText) errMsg = errText;
+        } catch (e2) {}
+      }
+      throw new Error(errMsg);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const safeName = (tripName || 'Trip').replace(/[^a-zA-Z0-9_-]/g, '_');
+    link.setAttribute('download', `TripLedger_${safeName}_Statement.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(url), 1500);
+    return true;
+  },
+  downloadReportPDFUrl: (tripId) => {
+    const token = localStorage.getItem('tripledger_token');
+    return `${API_BASE_URL}/trips/${tripId}/report/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
 
   // AI Savings Recommendations
   getSavingsRecommendations: (tripId, location = null) => {
@@ -95,6 +127,29 @@ export const api = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ location })
+    }).then(handleResponse);
+  },
+
+  // AI Weather Digital Twin
+  getDigitalTwinWeather: (tripId, location = null, refresh = false) => {
+    const params = new URLSearchParams();
+    if (location) params.append('location', location);
+    if (refresh) params.append('refresh', 'true');
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return fetch(`${API_BASE_URL}/trips/${tripId}/digital-twin/weather${query}`, { headers: getHeaders() }).then(handleResponse);
+  },
+  getDigitalTwinSocial: (tripId, location = null) => {
+    const query = location ? `?location=${encodeURIComponent(location)}` : '';
+    return fetch(`${API_BASE_URL}/trips/${tripId}/digital-twin/social${query}`, { headers: getHeaders() }).then(handleResponse);
+  },
+  getDigitalTwinImpact: (tripId) => {
+    return fetch(`${API_BASE_URL}/trips/${tripId}/digital-twin/impact`, { headers: getHeaders() }).then(handleResponse);
+  },
+  simulateDigitalTwin: (tripId, scenario) => {
+    return fetch(`${API_BASE_URL}/trips/${tripId}/digital-twin/simulate`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ scenario })
     }).then(handleResponse);
   }
 };

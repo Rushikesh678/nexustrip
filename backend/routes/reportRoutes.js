@@ -57,7 +57,7 @@ router.get('/', auth, async (req, res) => {
         type: 'ACCOMMODATION',
         title: 'Share a Private Villa / House',
         savingsAmount: Math.round(byCategory.ACCOMMODATION * 0.25),
-        description: `Your group is spending $${byCategory.ACCOMMODATION.toFixed(2)} on individual hotel rooms. Switching to a shared villa can save approx 25% (~$${Math.round(byCategory.ACCOMMODATION * 0.25)}).`
+        description: `Your group is spending ₹${byCategory.ACCOMMODATION.toFixed(2)} on individual hotel rooms. Switching to a shared villa can save approx 25% (~₹${Math.round(byCategory.ACCOMMODATION * 0.25)}).`
       });
     }
     if (byCategory.TRANSPORT > 300 && participants.length >= 4) {
@@ -65,7 +65,7 @@ router.get('/', auth, async (req, res) => {
         type: 'TRANSPORT',
         title: 'Group Van / Car Rental Optimization',
         savingsAmount: Math.round(byCategory.TRANSPORT * 0.30),
-        description: `Group shuttle or rental van will save up to 30% (~$${Math.round(byCategory.TRANSPORT * 0.30)}) compared to multiple taxis.`
+        description: `Group shuttle or rental van will save up to 30% (~₹${Math.round(byCategory.TRANSPORT * 0.30)}) compared to multiple taxis.`
       });
     }
     if (recommendations.length === 0) {
@@ -124,7 +124,9 @@ router.get('/pdf', auth, async (req, res) => {
     generateTripPDFReport(trip, participants, expenses, bookings, settlement, res);
   } catch (err) {
     console.error('PDF error:', err);
-    res.status(500).send('Error generating PDF report.');
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: 'Error generating PDF report: ' + err.message });
+    }
   }
 });
 

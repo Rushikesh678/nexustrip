@@ -8,6 +8,8 @@ const auth = (req, res, next) => {
     token = authHeader.substring(7);
   } else if (req.header('x-auth-token')) {
     token = req.header('x-auth-token');
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
   }
 
   if (!token) {

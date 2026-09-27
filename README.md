@@ -1,7 +1,7 @@
-# 🌲 TripLedger — Collaborative Trip Planning & Expense Manager
+# 🌲 NexusTrip (TripLedger) — Collaborative Trip Planning, Expense Ledger & Weather Digital Twin
 
-> **A modern financial ledger, group itinerary planner, and expense management platform built with the MERN stack.**  
-> Designed with a vintage national-park poster aesthetic (`nexus` design system), robust cost-sharing models, AI & OCR-assisted bill parsing, Google OAuth authentication, native **Indian Rupee (₹ / INR)** & UPI payment integration, interactive multi-day itinerary scheduling, hyper-localized AI savings recommendations, and automated minimum-transaction debt settlement.
+> **A modern financial ledger, group itinerary planner, AI-driven Weather Digital Twin, and expense management platform built with the MERN stack.**  
+> Designed with a vintage national-park poster aesthetic (`nexus` design system), robust cost-sharing models, AI & OCR-assisted bill parsing, Google OAuth authentication, native **Indian Rupee (₹ / INR)** & UPI payment integration, interactive multi-day itinerary scheduling, hyper-localized AI savings recommendations, real-time OpenWeatherMap & Reddit social signal ingestion, interactive What-If scenario simulation, and automated minimum-transaction debt settlement.
 
 ---
 
@@ -15,37 +15,47 @@
 1. [Overview & Product Vision](#-overview--product-vision)
 2. [Key Features](#-key-features)
 3. [Recent Accomplishments & Updates](#-recent-accomplishments--updates)
-4. [Design System & UI Aesthetics (`nexus`)](#-design-system--ui-aesthetics-nexus)
-5. [Indian Currency (INR / ₹) & Payment Methods](#-indian-currency-inr----payment-methods)
-6. [AI & OCR Bill Parsing Engine](#-ai--ocr-bill-parsing-engine)
-7. [Smart Group Itinerary Planning](#-smart-group-itinerary-planning)
-8. [AI Group Savings Recommendations](#-ai-group-savings-recommendations)
-9. [Architecture & Tech Stack](#-architecture--tech-stack)
-10. [Directory Structure](#-directory-structure)
-11. [Database Schemas & Data Models](#-database-schemas--data-models)
-12. [API Endpoints Reference](#-api-endpoints-reference)
-13. [Cost-Sharing & Debt Simplification Algorithms](#-cost-sharing--debt-simplification-algorithms)
-14. [Setup & Running Locally](#-setup--running-locally)
-15. [Project Documentation Index](#-project-documentation-index)
-16. [AI Agent Maintenance Protocol](#-ai-agent-maintenance-protocol)
+4. [AI Weather Digital Twin & Simulation Engine](#-ai-weather-digital-twin--simulation-engine)
+5. [Design System & UI Aesthetics (`nexus`)](#-design-system--ui-aesthetics-nexus)
+6. [Indian Currency (INR / ₹) & Payment Methods](#-indian-currency-inr----payment-methods)
+7. [AI & OCR Bill Parsing Engine](#-ai--ocr-bill-parsing-engine)
+8. [Smart Group Itinerary Planning](#-smart-group-itinerary-planning)
+9. [AI Group Savings Recommendations](#-ai-group-savings-recommendations)
+10. [Architecture & Tech Stack](#-architecture--tech-stack)
+11. [Directory Structure](#-directory-structure)
+12. [Database Schemas & Data Models](#-database-schemas--data-models)
+13. [API Endpoints Reference](#-api-endpoints-reference)
+14. [Cost-Sharing & Debt Simplification Algorithms](#-cost-sharing--debt-simplification-algorithms)
+15. [Setup & Running Locally](#-setup--running-locally)
+16. [Demo Walkthrough for Evaluators](#-demo-walkthrough-for-evaluators)
+17. [Project Documentation Index](#-project-documentation-index)
+18. [AI Agent Maintenance Protocol](#-ai-agent-maintenance-protocol)
 
 ---
 
 ## 🌲 Overview & Product Vision
 
-**TripLedger** solves the chaotic reality of group travel planning and finances. Unlike simple expense splitters, TripLedger accommodates variable arrival/departure dates, weighted accommodation nights, tiered cost multipliers, refunds, mid-trip money requests, multi-day itinerary timelines with live budget-to-actual rollups, side quest micro-groups, and multi-currency conversions.
+**NexusTrip** solves the chaotic reality of group travel planning, financial settlements, and real-world travel disruption risks. Beyond simple expense splitters, NexusTrip accommodates variable arrival/departure dates, weighted accommodation nights, tiered cost multipliers, refunds, mid-trip money requests, multi-day itinerary timelines with live budget-to-actual rollups, side quest micro-groups, multi-currency conversions, and an **AI Weather Digital Twin** that simulates how meteorological shifts and extreme events cascade through flights, hotels, and group activities.
 
 ### Core Philosophy
-- **Transparent Calculations:** AI & OCR assist with receipt scanning, but financial decisions remain fully controllable and editable by users.
+- **Transparent Calculations:** AI & OCR assist with receipt scanning and risk simulation, but financial and scheduling decisions remain fully controllable and editable by users.
 - **Fair Split Models:** Support for equal splits, stay-duration weighting, custom fixed amounts, side quest micro-groups, and room occupancy calculations.
 - **Unified Itinerary & Finances:** Itinerary blocks link directly to bookings and expenses, giving real-time visibility into planned vs. actual costs and budget variances.
-- **Minimum Transaction Settlement:** Reduces 20 criss-cross debts into a concise list of optimized transfers.
+- **Proactive Risk Intelligence:** Digital Twin simulation forecasts weather disruptions, propagation chains, and traveler sentiment before disruptions occur.
+- **Minimum Transaction Settlement:** Reduces criss-cross group debts into an optimized list of direct UPI/digital transfers.
 - **Vibrant Aesthetic:** Built using the `nexus` design theme — warm paper cream canvas paired with deep forest ink and vivid meadow green interactive elements.
 
 ---
 
 ## ✨ Key Features
 
+- **🌤️ Weather-Driven Digital Twin & Geospatial Simulation:**
+  - **Live Weather Integration:** Real-time conditions, 5-day forecast, hourly precipitation, wind gusts, UV index, and weather warnings powered by OpenWeatherMap with a 30-minute TTL MongoDB cache ([`WeatherCache.js`](file:///c:/Users/minil/Desktop/pillai/backend/models/WeatherCache.js)).
+  - **Interactive Geospatial Map:** Leaflet.js & OpenStreetMap visualization displaying trip destination anchor pins, booking locations (Hotels, Transport, Tours, Meals), risk markers (`Low`, `Medium`, `High`, `Critical`), clickable status popups, and precipitation overlays.
+  - **Real-World Social Signal Ingestion:** Scrapes Reddit public travel discussions for destination weather sentiment, keyword velocity, and emerging ground-truth condition reports.
+  - **Interactive What-If Simulation:** Sliders to stress-test scenarios with rainfall (0–500 mm), temperature deltas (±20°C), storm duration (0–72h), wind speed (0–200 km/h), flood triggers, and heatwaves.
+  - **Cascading Disruption Chains:** Groq AI (`llama-3.3-70b-versatile`) calculates how weather cascades through systems: *Extreme Rain → Road Inundation → Hotel Access Delayed → Tour Cancellation → Meal Reservation Disrupted → Automated Refund Trigger*.
+  - **Probabilistic Risk Scoring:** Confidence intervals, probability of impact, affected participants count, and recommended preventative actions per booking.
 - **Authentication & Security:**
   - Standard email/password registration & login with JSON Web Tokens (JWT).
   - One-click **Google OAuth 2.0** authentication (`@react-oauth/google` & `google-auth-library`).
@@ -87,33 +97,73 @@
 
 Here is a summary of features implemented across recent development milestones:
 
-1. **Smart Itinerary Planning & Budget Rollup Engine:**
-   - Created `ItineraryBlock.js` schema featuring day numbers, categorized time slots, locations, estimated budgets, and participant assignments.
-   - Built backend `itineraryRoutes.js` supporting CRUD operations, auto-generation from trip dates & bookings, and automatic aggregation of linked expenses and bookings with cost variance calculations.
-   - Created dedicated `ItineraryTab.jsx` component inside `TripWorkspace.jsx` complete with Day filters, summary stat cards, status toggles, and instant expense/receipt logging.
-2. **AI Group Savings Recommendation Engine:**
-   - Implemented `savingsService.js` and `recommendationRoutes.js` connecting to OpenRouter LLMs with Groq SDK fallback and local heuristic fallback.
+1. **Weather-Driven Digital Twin & Simulation Layer (Task 1 / HackCelestial):**
+   - Built [`digitalTwinRoutes.js`](file:///c:/Users/minil/Desktop/pillai/backend/routes/digitalTwinRoutes.js) exposing 4 high-throughput endpoints (`/weather`, `/social`, `/impact`, `/simulate`).
+   - Implemented [`weatherService.js`](file:///c:/Users/minil/Desktop/pillai/backend/services/weatherService.js) with OpenWeatherMap API integration, mock deterministic fallbacks, and 30-minute TTL MongoDB caching via [`WeatherCache.js`](file:///c:/Users/minil/Desktop/pillai/backend/models/WeatherCache.js).
+   - Created [`socialService.js`](file:///c:/Users/minil/Desktop/pillai/backend/services/socialService.js) for Reddit public travel chatter ingestion, AFINN/VADER-style sentiment scoring, and trending topic classification.
+   - Built [`digitalTwinService.js`](file:///c:/Users/minil/Desktop/pillai/backend/services/digitalTwinService.js) using Groq AI (`llama-3.3-70b-versatile`) to calculate multi-entity cascading disruption propagation with probability intervals and financial impact estimators.
+   - Created full frontend suite under [`frontend/src/components/DigitalTwin/`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/): [`DigitalTwinTab.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/DigitalTwinTab.jsx), [`WeatherPanel.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/WeatherPanel.jsx), [`MapView.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/MapView.jsx), [`ImpactDashboard.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/ImpactDashboard.jsx), [`WhatIfSimulator.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/WhatIfSimulator.jsx), and [`SocialSignals.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/SocialSignals.jsx).
+2. **Smart Itinerary Planning & Budget Rollup Engine:**
+   - Created [`ItineraryBlock.js`](file:///c:/Users/minil/Desktop/pillai/backend/models/ItineraryBlock.js) schema featuring day numbers, categorized time slots, locations, estimated budgets, and participant assignments.
+   - Built backend [`itineraryRoutes.js`](file:///c:/Users/minil/Desktop/pillai/backend/routes/itineraryRoutes.js) supporting CRUD operations, auto-generation from trip dates & bookings, and automatic aggregation of linked expenses and bookings with cost variance calculations.
+   - Created dedicated [`ItineraryTab.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/ItineraryTab.jsx) component inside [`TripWorkspace.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/pages/TripWorkspace.jsx) complete with Day filters, summary stat cards, status toggles, and instant expense/receipt logging.
+3. **AI Group Savings Recommendation Engine:**
+   - Implemented [`savingsService.js`](file:///c:/Users/minil/Desktop/pillai/backend/services/savingsService.js) and [`recommendationRoutes.js`](file:///c:/Users/minil/Desktop/pillai/backend/routes/recommendationRoutes.js) connecting to OpenRouter LLMs with Groq SDK fallback and local heuristic fallback.
    - Generates hyper-localized money-saving opportunities based on compulsory booking locations and trip destination.
    - Added two-tier caching: 24-hour in-memory backend cache plus frontend `sessionStorage` caching.
-3. **Trip Invite Codes & Member Privileges:**
+4. **Trip Invite Codes & Member Privileges:**
    - Added unique human-friendly invite codes (e.g., `EXP-XXXX`) for one-click trip joining.
    - Added host settings to control whether members can add expenses or require host approval (`Trip.settings.allowMemberExpenses`, `Trip.settings.requireHostApproval`).
-   - Implemented Side Quests support in `Expense.js` and `Booking.js` allowing selective member participation.
-4. **Bill Parsing & Receipt Scanner Feature:**
-   - Enhanced `receiptService.js` supporting image OCR, PDF parsing, OpenRouter LLM extraction, Groq LLM extraction, and regex fallbacks.
-   - Integrated drag-and-drop receipt scanning modal into `TripWorkspace.jsx` to auto-fill title, amount, category, date, and participants.
-5. **Google OAuth 2.0 Authentication & Email System:**
+   - Implemented Side Quests support in [`Expense.js`](file:///c:/Users/minil/Desktop/pillai/backend/models/Expense.js) and [`Booking.js`](file:///c:/Users/minil/Desktop/pillai/backend/models/Booking.js) allowing selective member participation.
+5. **Bill Parsing & Receipt Scanner Feature:**
+   - Enhanced [`receiptService.js`](file:///c:/Users/minil/Desktop/pillai/backend/services/receiptService.js) supporting image OCR, PDF parsing, OpenRouter LLM extraction, Groq LLM extraction, and regex fallbacks.
+   - Integrated drag-and-drop receipt scanning modal into [`TripWorkspace.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/pages/TripWorkspace.jsx) to auto-fill title, amount, category, date, and participants.
+6. **Google OAuth 2.0 Authentication & Email System:**
    - Google Sign-In workflow on client (`@react-oauth/google`) and server (`google-auth-library`).
-   - Integrated `emailService.js` using `nodemailer` for welcome and security login notifications.
-6. **Indian Currency Integration (₹ / INR):**
-   - Configured native **Indian Rupee (INR / ₹)** formatting according to `en-IN` standards.
-   - Added **UPI ID** payment support for Indian payment apps (GPay, PhonePe, Paytm).
+   - Integrated [`emailService.js`](file:///c:/Users/minil/Desktop/pillai/backend/services/emailService.js) using `nodemailer` for welcome and security login notifications.
+7. **Comprehensive Demo Seeding & Resilience Test Suites:**
+   - Authored [`seed_demo_data.js`](file:///c:/Users/minil/Desktop/pillai/backend/seed_demo_data.js) providing rich ready-to-test trips (e.g., Goa Beach Retreat, Manali Snow Expedition, Tokyo Exploration, Mumbai Monsoon Trip).
+   - Created test suites [`test_digital_twin_resilience.js`](file:///c:/Users/minil/Desktop/pillai/backend/test_digital_twin_resilience.js) and [`test_edge_cases_simulation.js`](file:///c:/Users/minil/Desktop/pillai/backend/test_edge_cases_simulation.js) verifying reliability under API outages.
+
+---
+
+## 🌪️ AI Weather Digital Twin & Simulation Engine
+
+The Digital Twin transforms NexusTrip from a reactive ledger into a **proactive travel intelligence platform**. Weather changes produce domino effects across hospitality bookings, transit, and activities:
+
+```mermaid
+flowchart TD
+    subgraph Data Ingestion
+        A[OpenWeatherMap API] -->|Live Forecast & Alerts| WC[(WeatherCache - 30m TTL)]
+        B[Reddit Public Search] -->|Traveler Chatter & Posts| SS[Social Signals Engine]
+        C[Trip Bookings & Itinerary] -->|Hotels, Flights, Tours| BE[Entity Registry]
+    end
+
+    subgraph AI Simulation Core
+        WC & SS & BE --> DT[digitalTwinService.js - Groq AI LLaMA 3.3]
+        SIM[What-If Parameter Sliders] -->|Rainfall, Wind, Temp, Storms| DT
+    end
+
+    subgraph Intelligence Outputs
+        DT --> R[Risk Scoring & Confidence Intervals]
+        DT --> P[Cascading Disruption Propagation Chains]
+        DT --> M[Leaflet Geospatial Heatmap & Risk Pins]
+        DT --> S[Actionable Recovery & Refund Recommendations]
+    end
+```
+
+### Digital Twin Components
+1. **Weather Panel ([`WeatherPanel.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/WeatherPanel.jsx)):** Real-time temperature, precipitation probability, humidity, UV index, wind speed, and 5-day forecast cards.
+2. **Geospatial Map ([`MapView.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/MapView.jsx)):** Leaflet.js interactive map centered on the destination with color-coded risk markers (`Low` = Green, `Medium` = Yellow, `High` = Red, `Critical` = Black) and direct weather impact tooltips.
+3. **Cascading Impact Dashboard ([`ImpactDashboard.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/ImpactDashboard.jsx)):** Visual step-by-step propagation diagrams explaining direct and indirect disruptions across bookings.
+4. **What-If Scenario Simulator ([`WhatIfSimulator.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/WhatIfSimulator.jsx)):** Dynamic parameter controls (rainfall mm, temperature delta, storm duration, flood risk, extreme heat) with instant AI re-computation and cost risk assessment.
+5. **Social Signals Panel ([`SocialSignals.jsx`](file:///c:/Users/minil/Desktop/pillai/frontend/src/components/DigitalTwin/SocialSignals.jsx)):** Reddit community sentiment analysis, post upvote counters, and emerging situation alerts.
 
 ---
 
 ## 🎨 Design System & UI Aesthetics (`nexus`)
 
-TripLedger adheres strictly to the **nexus** design specification ([`DESIGN.md`](file:///c:/Users/minil/Desktop/pillai/DESIGN.md)):
+NexusTrip adheres strictly to the **nexus** design specification ([`DESIGN.md`](file:///c:/Users/minil/Desktop/pillai/DESIGN.md)):
 
 ### Color Tokens
 | Name | Hex Code | CSS Variable | Role / Usage |
@@ -124,13 +174,13 @@ TripLedger adheres strictly to the **nexus** design specification ([`DESIGN.md`]
 | **Sage Border** | `#566053` | `--color-sage-border` | Subtle green-gray borders, secondary dividers |
 | **Lichen** | `#77e46e` | `--color-lichen` | Outline button borders, hover highlights |
 | **Charcoal** | `#333333` | `--color-charcoal` | Dark body text on cream surfaces |
-| **River Blue** | `#73d3eb` | `--color-river-blue` | Data visualizations, water/sky highlights |
+| **River Blue** | `#73d3eb` | `--color-river-blue` | Data visualizations, water/sky highlights, live telemetry |
 
 ---
 
 ## 🇮🇳 Indian Currency (INR / ₹) & Payment Methods
 
-TripLedger includes native support for **Indian Rupee (INR / ₹)** and Indian digital payment rails:
+NexusTrip includes native support for **Indian Rupee (INR / ₹)** and Indian digital payment rails:
 
 1. **Currency Defaults & Formatting:**
    - Default trip currency options include `INR (₹)`, `USD ($)`, `EUR (€)`, `GBP (£)`, etc.
@@ -143,7 +193,7 @@ TripLedger includes native support for **Indian Rupee (INR / ₹)** and Indian d
 
 ## 🤖 AI & OCR Bill Parsing Engine
 
-TripLedger features a multi-layer bill processing pipeline designed for speed and accuracy:
+NexusTrip features a multi-layer bill processing pipeline designed for speed and accuracy:
 
 ```mermaid
 flowchart LR
@@ -202,6 +252,7 @@ flowchart TD
     Server <-->|Mongoose ODM| DB[(MongoDB Database)]
     Server -->|Multer + Tesseract + Groq / OpenRouter| OCR[Receipt Parsing & AI Service]
     Server -->|OpenRouter + Groq| Savings[AI Savings Recommendation Engine]
+    Server -->|OpenWeatherMap + Reddit API + Groq AI| Twin[Weather Digital Twin Engine]
     Server -->|Nodemailer| Mailer[Email Notification Service]
     Server -->|PDFKit| Reports[PDF Report Generator]
 ```
@@ -211,6 +262,7 @@ flowchart TD
   - React 18 (Vite build tool)
   - React Router DOM v6
   - `@react-oauth/google` for Google Sign-In
+  - `leaflet` & `react-leaflet` for Geospatial mapping
   - Lucide React Icons
   - Canvas Confetti
   - Custom Vanilla CSS (`index.css` design system)
@@ -220,7 +272,7 @@ flowchart TD
   - JSON Web Tokens (`jsonwebtoken`), `bcryptjs`, `google-auth-library`
   - `tesseract.js` (OCR image text extraction)
   - `pdf-parse` (PDF document text extraction)
-  - `groq-sdk` & OpenRouter API (Structured AI bill extraction & savings recommendations)
+  - `groq-sdk` & OpenRouter API (LLaMA 3.3 / Gemini AI for Receipt OCR, Savings, and Digital Twin Simulation)
   - `nodemailer` (Transactional welcome & login email alerts)
   - `multer` for multipart receipt file uploads
   - `pdfkit` for server-side PDF document rendering
@@ -232,9 +284,10 @@ flowchart TD
 
 ```
 pillai/
-├── README.md                          # Main project guide & AI maintenance rules
+├── README.md                          # Main project guide, architecture & API specs
 ├── DESIGN.md                          # Nexus design system token specifications
-├── Trip_Planning_Product_Design.md    # Comprehensive product design & feature spec
+├── task1.md                           # Weather Digital Twin specification & judging notes
+├── Trip_Planning_Product_Design.md    # Product design & feature spec
 ├── GroupTrip_Ledger_Schema.md         # Database schema reference & field documentation
 ├── GroupTrip_Ledger_Cases.md          # Edge cases, join/leave logic & settlement rules
 ├── GroupTrip_Ledger_Decision_Matrix.md # Decision trees for complex financial scenarios
@@ -255,7 +308,8 @@ pillai/
 │   │   ├── Refund.js                  # Refund transactions
 │   │   ├── Settlement.js              # Calculated settlement transfers & states
 │   │   ├── LedgerEntry.js             # Double-entry transaction audit records
-│   │   └── AuditLog.js                # System security and change event log
+│   │   ├── AuditLog.js                # System security and change event log
+│   │   └── WeatherCache.js            # MongoDB 30m TTL cache for weather API responses
 │   ├── routes/                        # REST endpoint controllers
 │   │   ├── authRoutes.js              # /api/v1/auth (Registration, Google OAuth, me)
 │   │   ├── tripRoutes.js              # /api/v1/trips (CRUD, join with invite code)
@@ -263,6 +317,7 @@ pillai/
 │   │   ├── bookingRoutes.js           # /api/v1/trips/:tripId/bookings
 │   │   ├── itineraryRoutes.js         # /api/v1/trips/:tripId/itinerary
 │   │   ├── expenseRoutes.js           # /api/v1/trips/:tripId/expenses & /receipts
+│   │   ├── digitalTwinRoutes.js       # /api/v1/trips/:tripId/digital-twin (Weather, Social, Impact, Sim)
 │   │   ├── paymentRoutes.js           # /api/v1/trips/:tripId/payments
 │   │   ├── refundRoutes.js            # /api/v1/trips/:tripId/refunds
 │   │   ├── settlementRoutes.js        # /api/v1/trips/:tripId/settlement
@@ -272,10 +327,16 @@ pillai/
 │   │   └── recommendationRoutes.js    # /api/v1/trips/:tripId/recommendations
 │   ├── services/                      # Business logic & algorithms
 │   │   ├── calculationService.js      # Debt simplification & pro-rata engines
+│   │   ├── digitalTwinService.js      # Groq AI Digital Twin impact & simulation engine
 │   │   ├── emailService.js            # Nodemailer notification service
 │   │   ├── receiptService.js          # Tesseract + Groq / OpenRouter AI receipt parser
 │   │   ├── reportService.js           # PDF layout & document compilation
-│   │   └── savingsService.js          # AI Group Savings recommendation generator
+│   │   ├── savingsService.js          # AI Group Savings recommendation generator
+│   │   ├── socialService.js           # Reddit public JSON signal scraper & sentiment analysis
+│   │   └── weatherService.js          # OpenWeatherMap API caller + TTL cache manager
+│   ├── seed_demo_data.js              # Comprehensive demo database seeder
+│   ├── test_digital_twin_resilience.js # Resilience test suite for Digital Twin
+│   ├── test_edge_cases_simulation.js  # Edge-case financial & simulation validator
 │   ├── uploads/                       # Static receipt storage directory
 │   ├── .env                           # Backend environment variables
 │   ├── package.json
@@ -285,7 +346,14 @@ pillai/
     ├── src/
     │   ├── components/                # Reusable UI elements
     │   │   ├── Navbar.jsx             # Top navigation & user profile
-    │   │   └── ItineraryTab.jsx       # Multi-day timeline, day filters & variance cards
+    │   │   ├── ItineraryTab.jsx       # Multi-day timeline, day filters & variance cards
+    │   │   └── DigitalTwin/           # AI Weather Digital Twin Suite
+    │   │       ├── DigitalTwinTab.jsx  # Main container & tab orchestrator
+    │   │       ├── WeatherPanel.jsx    # Live conditions, alerts & 5-day forecast
+    │   │       ├── MapView.jsx         # Leaflet geospatial risk map & markers
+    │   │       ├── ImpactDashboard.jsx # AI cascading impact propagation chains
+    │   │       ├── WhatIfSimulator.jsx # Interactive multi-parameter scenario simulator
+    │   │       └── SocialSignals.jsx   # Reddit traveler sentiment & trending posts
     │   ├── context/                   # Global React contexts
     │   │   └── AuthContext.jsx
     │   ├── pages/                     # Full views / page routes
@@ -320,6 +388,7 @@ pillai/
 | **`Settlement`** | Optimized trip balance calculations | `tripId`, `status`, `balances`, `transactions_required`, `is_balanced`, `finalizedAt` |
 | **`LedgerEntry`** | Double-entry record for auditability | `trip_id`, `entry_type`, `debit`, `credit`, `participant_id`, `balance_after`, `description` |
 | **`AuditLog`** | Security and action change log | `tripId`, `action`, `actorId`, `actorName`, `target`, `changes`, `reason` |
+| **`WeatherCache`** | 30-min TTL cache for weather & forecast data | `location`, `coordinates` (`lat`, `lon`), `weatherData` (`current`, `forecast`, `alerts`), `createdAt` (expires in 1800s) |
 
 ---
 
@@ -339,6 +408,12 @@ pillai/
 - `GET /:tripId` — Fetch trip details, participants, expenses, bookings, itinerary blocks, and stats.
 - `PUT /:tripId` — Update trip settings, host approval policies, budget, or dates.
 - `DELETE /:tripId` — Permanently delete trip and all associated collection records.
+
+### AI Weather Digital Twin (`/api/v1/trips/:tripId/digital-twin`)
+- `GET /weather` — Fetch live weather, 5-day forecast, precipitation probability, and alerts (with optional `?location=` and `?refresh=true`).
+- `GET /social` — Retrieve Reddit traveler discussion posts, sentiment scores (-1.0 to +1.0), and trending weather topics.
+- `GET /impact` — Compute AI Digital Twin entity risk scores, cascading disruption propagation chains, and cost exposures.
+- `POST /simulate` — Run What-If counterfactual scenarios against custom weather parameters (rainfall mm, temperature delta, storm duration, flood risk, extreme heat).
 
 ### Itinerary Planning (`/api/v1/trips/:tripId/itinerary`)
 - `GET /` — List all itinerary blocks with populated financial rollups (`actual_cost`, `variance`, `is_over_budget`, `is_untracked`).
@@ -392,13 +467,13 @@ pillai/
 
 ## 🧮 Cost-Sharing & Debt Simplification Algorithms
 
-### 1. Pro-Rata Overlap Nights (`calculationService.js`)
+### 1. Pro-Rata Overlap Nights ([`calculationService.js`](file:///c:/Users/minil/Desktop/pillai/backend/services/calculationService.js))
 For accommodation costs split by `weighted_nights`:
 $$\text{Overlap Nights} = \max(0, \min(\text{Departure}_P, \text{CheckOut}) - \max(\text{Arrival}_P, \text{CheckIn}))$$
 $$\text{Participant Share} = \left( \frac{\text{Participant Overlap Nights}}{\sum \text{All Participant Overlap Nights}} \right) \times \text{Total Cost}$$
 
 ### 2. Minimum Transaction Debt Settlement
-TripLedger computes each participant's `net_balance = total_owed - total_paid`:
+NexusTrip computes each participant's `net_balance = total_owed - total_paid`:
 - **Debtors (`net_balance > 0`):** Participants who must pay into the group pool.
 - **Creditors (`net_balance < 0`):** Participants who are owed money back.
 
@@ -426,13 +501,14 @@ GOOGLE_CLIENT_ID=your_google_client_id_here
 GROQ_API_KEY=your_groq_api_key_here
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 OPENROUTER_MODEL=google/gemini-3.5-flash-lite
+OPENWEATHER_API_KEY=your_openweather_api_key_here
 
 # Optional SMTP Email Settings (nodemailer)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
-EMAIL_FROM="TripLedger <welcome@tripledger.com>"
+EMAIL_FROM="NexusTrip <welcome@nexustrip.com>"
 ```
 
 Create a `.env` file in `frontend/`:
@@ -446,6 +522,7 @@ VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 ```bash
 cd backend
 npm install
+node seed_demo_data.js    # Pre-seeds demo trips with bookings, members, and expenses
 npm run dev
 ```
 *The backend server will start on `http://localhost:5000`.*
@@ -460,15 +537,37 @@ npm run dev
 
 ---
 
+## 🎬 Demo Walkthrough for Evaluators
+
+1. **Sign In:** Use one of the pre-seeded demo accounts (e.g. `arjun.sharma@example.com` / `password123`) or register a new user.
+2. **Open Trip Workspace:** Select **"Mumbai Monsoon Trip"** or **"Goa Beach Retreat"**.
+3. **Explore Digital Twin Tab:**
+   - Click the **"Digital Twin"** tab in the workspace navigation.
+   - **Live Weather Panel:** Inspect live temperature, precipitation chances, and 5-day forecast for the destination.
+   - **Geospatial Map:** View the Leaflet map with colored risk markers for each hotel, transit, and activity booking.
+   - **Impact Dashboard:** Review the AI-calculated cascading risk chains (e.g. *Rainfall → Coastal Flooding → Ferry Cancellation → Disrupted Dinner Booking*).
+   - **Social Signals:** Observe real-time traveler sentiment and Reddit discussions on local weather conditions.
+   - **What-If Simulator:** Adjust rainfall sliders to `350 mm` and storm duration to `12 hrs`. Click **"Run Simulation"** to observe live risk elevation, confidence intervals, and automated mitigation steps. Click **"Back to Live Data"** to restore real-time telemetry.
+4. **Test Expense OCR & Splitting:**
+   - Go to the **"Expenses"** tab and drag & drop a restaurant bill or hotel invoice.
+   - Observe AI field extraction (merchant, total amount, category, date).
+5. **Review Itinerary & Budget Rollups:**
+   - Visit the **"Itinerary"** tab to view planned vs actual expenditure variances and over-budget badges.
+6. **Settle Debts:**
+   - Switch to the **"Settlement"** tab to view the minimum transaction graph and pay via simulated UPI.
+
+---
+
 ## 📚 Project Documentation Index
 
 For deeper domain knowledge and implementation guidelines, refer to the root markdown specifications:
 
 1. **[`DESIGN.md`](file:///c:/Users/minil/Desktop/pillai/DESIGN.md):** `nexus` theme guidelines, full typography scale, CSS token definitions, and UI components.
-2. **[`Trip_Planning_Product_Design.md`](file:///c:/Users/minil/Desktop/pillai/Trip_Planning_Product_Design.md):** Comprehensive product roadmap, user journeys (Host vs Member), and UX guidelines.
-3. **[`GroupTrip_Ledger_Schema.md`](file:///c:/Users/minil/Desktop/pillai/GroupTrip_Ledger_Schema.md):** Detailed field types, indexes, and validation rules for all 10 MongoDB collections.
-4. **[`GroupTrip_Ledger_Cases.md`](file:///c:/Users/minil/Desktop/pillai/GroupTrip_Ledger_Cases.md):** Edge case specifications (late joins, early departures, ghosting members, refunds).
-5. **[`GroupTrip_Ledger_Decision_Matrix.md`](file:///c:/Users/minil/Desktop/pillai/GroupTrip_Ledger_Decision_Matrix.md):** Financial decision trees and recommended resolution paths for complex scenario handling.
+2. **[`task1.md`](file:///c:/Users/minil/Desktop/pillai/task1.md):** Weather Digital Twin HackCelestial problem statement and architecture design.
+3. **[`Trip_Planning_Product_Design.md`](file:///c:/Users/minil/Desktop/pillai/Trip_Planning_Product_Design.md):** Comprehensive product roadmap, user journeys (Host vs Member), and UX guidelines.
+4. **[`GroupTrip_Ledger_Schema.md`](file:///c:/Users/minil/Desktop/pillai/GroupTrip_Ledger_Schema.md):** Detailed field types, indexes, and validation rules for all 12 MongoDB collections.
+5. **[`GroupTrip_Ledger_Cases.md`](file:///c:/Users/minil/Desktop/pillai/GroupTrip_Ledger_Cases.md):** Edge case specifications (late joins, early departures, ghosting members, refunds).
+6. **[`GroupTrip_Ledger_Decision_Matrix.md`](file:///c:/Users/minil/Desktop/pillai/GroupTrip_Ledger_Decision_Matrix.md):** Financial decision trees and recommended resolution paths for complex scenario handling.
 
 ---
 

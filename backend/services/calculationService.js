@@ -43,7 +43,7 @@ function calculateParticipantShare(booking, participant, participants, trip) {
   switch (booking.allocation_model) {
     case 'equal':
       share = booking.total_cost / assignedCount;
-      breakdown = `Total $${booking.total_cost} ÷ ${assignedCount} participants`;
+      breakdown = `Total ₹${booking.total_cost} ÷ ${assignedCount} participants`;
       break;
 
     case 'weighted_nights': {
@@ -65,7 +65,7 @@ function calculateParticipantShare(booking, participant, participants, trip) {
       }, 0);
 
       share = totalNights > 0 ? (booking.total_cost / totalNights) * pNights : 0;
-      breakdown = `(${pNights} nights ÷ ${totalNights} total nights) × $${booking.total_cost}`;
+      breakdown = `(${pNights} nights ÷ ${totalNights} total nights) × ₹${booking.total_cost}`;
       break;
     }
 
@@ -76,7 +76,7 @@ function calculateParticipantShare(booking, participant, participants, trip) {
       }, 0);
       const multiplier = participant.tier_multiplier || 1.0;
       share = tierTotal > 0 ? (booking.total_cost / tierTotal) * multiplier : 0;
-      breakdown = `(Multiplier ${multiplier} ÷ Total ${tierTotal}) × $${booking.total_cost}`;
+      breakdown = `(Multiplier ${multiplier} ÷ Total ${tierTotal}) × ₹${booking.total_cost}`;
       break;
     }
 
@@ -84,23 +84,23 @@ function calculateParticipantShare(booking, participant, participants, trip) {
       const qty = assignment ? assignment.quantity : 1;
       const roomies = booking.assigned_participants.filter(a => a.quantity === qty);
       share = roomies.length > 0 ? booking.total_cost / roomies.length : booking.total_cost / assignedCount;
-      breakdown = `Group cost $${booking.total_cost} ÷ ${roomies.length || assignedCount} occupants`;
+      breakdown = `Group cost ₹${booking.total_cost} ÷ ${roomies.length || assignedCount} occupants`;
       break;
     }
 
     case 'consumption_only':
       share = booking.total_cost / assignedCount;
-      breakdown = `${assignedCount} participants attended; $${booking.total_cost} total`;
+      breakdown = `${assignedCount} participants attended; ₹${booking.total_cost} total`;
       break;
 
     case 'custom_fixed':
       share = assignment ? assignment.amount_owed : 0;
-      breakdown = `Custom fixed share: $${share}`;
+      breakdown = `Custom fixed share: ₹${share}`;
       break;
 
     default:
       share = booking.total_cost / assignedCount;
-      breakdown = `Default equal split: $${booking.total_cost} ÷ ${assignedCount}`;
+      breakdown = `Default equal split: ₹${booking.total_cost} ÷ ${assignedCount}`;
   }
 
   share = roundAmount(share, trip.rounding_method);

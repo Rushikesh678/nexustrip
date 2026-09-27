@@ -46,7 +46,7 @@ const BookingSchema = new mongoose.Schema({
   assigned_participants: [AssignedParticipantSchema],
   allocation_model: {
     type: String,
-    enum: ['equal', 'weighted_nights', 'weighted_quantity', 'occupancy_based', 'consumption_only', 'custom_fixed'],
+    enum: ['equal', 'weighted_nights', 'weighted_quantity', 'occupancy_based', 'consumption_only', 'custom_fixed', 'tiered'],
     default: 'equal'
   },
 

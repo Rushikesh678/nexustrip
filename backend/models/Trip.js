@@ -15,7 +15,7 @@ const TripSchema = new mongoose.Schema({
     default: 'planning'
   },
 
-  currency: { type: String, default: 'USD' },
+  currency: { type: String, default: 'INR' },
   inviteCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true },
   total_cost_estimated: { type: Number, default: 0 },
   total_cost_actual: { type: Number, default: 0 },

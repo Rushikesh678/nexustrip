@@ -37,6 +37,7 @@ app.use('/api/v1/trips/:tripId/ledger', require('./routes/ledgerRoutes'));
 app.use('/api/v1/trips/:tripId/audit', require('./routes/auditRoutes'));
 app.use('/api/v1/trips/:tripId/report', require('./routes/reportRoutes'));
 app.use('/api/v1/trips/:tripId/recommendations', require('./routes/recommendationRoutes'));
+app.use('/api/v1/trips/:tripId/digital-twin', require('./routes/digitalTwinRoutes'));
 
 // Root Health Check Route
 app.get('/', (req, res) => {

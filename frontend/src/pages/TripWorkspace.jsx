@@ -4,11 +4,12 @@ import confetti from 'canvas-confetti';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ItineraryTab } from '../components/ItineraryTab';
+import { DigitalTwinTab } from '../components/DigitalTwin/DigitalTwinTab';
 import {
   LayoutDashboard, Receipt, CalendarCheck, Users, BookOpen, Scale, FileText, Settings,
   Plus, Upload, DollarSign, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownLeft,
   Sparkles, Download, Trash2, Edit, UserCheck, ShieldAlert, ArrowRight, RefreshCw, Layers,
-  KeyRound, Copy, Check, Smartphone, CreditCard, Banknote, ShieldCheck, Compass, Info, MapPin
+  KeyRound, Copy, Check, Smartphone, CreditCard, Banknote, ShieldCheck, Compass, Info, MapPin, Cpu
 } from 'lucide-react';
 
 export const TripWorkspace = () => {
@@ -632,6 +633,7 @@ export const TripWorkspace = () => {
       <div className="mobile-tabs-scroll">
         {[
           { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+          { id: 'digital-twin', label: 'Digital Twin', icon: Cpu, badge: 'AI' },
           { id: 'itinerary', label: `Itinerary (${itineraryData?.itinerary?.length || tripData?.itineraryBlocks?.length || 0})`, icon: Compass },
           { id: 'expenses', label: `Expenses (${expenses.length})`, icon: Receipt },
           { id: 'bookings', label: `Bookings (${bookings.length})`, icon: CalendarCheck },
@@ -668,6 +670,19 @@ export const TripWorkspace = () => {
             >
               <IconComp size={15} />
               {tab.label}
+              {tab.badge && (
+                <span style={{
+                  backgroundColor: isActive ? 'var(--color-meadow)' : 'var(--color-forest-ink)',
+                  color: isActive ? 'var(--color-forest-ink)' : '#ffffff',
+                  fontSize: '9px',
+                  fontWeight: 900,
+                  padding: '1px 5px',
+                  borderRadius: '6px',
+                  marginLeft: '2px'
+                }}>
+                  {tab.badge}
+                </span>
+              )}
             </button>
           );
         })}
@@ -706,7 +721,16 @@ export const TripWorkspace = () => {
         />
       )}
 
-      {/* 2. ITINERARY TAB */}
+      {/* 2. DIGITAL TWIN TAB */}
+      {activeTab === 'digital-twin' && (
+        <DigitalTwinTab
+          trip={trip}
+          bookings={bookings}
+          participants={participants}
+        />
+      )}
+
+      {/* 3. ITINERARY TAB */}
       {activeTab === 'itinerary' && (
         <ItineraryTab
           trip={trip}
@@ -2567,49 +2591,284 @@ const SettlementTab = ({ tripId, trip, participants, onRefresh }) => {
 const ReportTab = ({ tripId, trip }) => {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState(null);
+
+  const fetchReport = () => {
+    setLoading(true);
+    api.getReport(tripId)
+      .then(res => {
+        if (res.success) setReportData(res.report);
+      })
+      .catch(err => {
+        console.error('Error fetching report:', err);
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    api.getReport(tripId).then(res => {
-      if (res.success) setReportData(res.report);
-    }).finally(() => setLoading(false));
+    fetchReport();
   }, [tripId]);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '40px' }}>Generating Trip Report...</div>;
+  const handleExportPDF = async () => {
+    setExportingPdf(true);
+    setExportFeedback(null);
+    try {
+      await api.downloadReportPDF(tripId, trip?.name || reportData?.tripName || 'Trip');
+      setExportFeedback({ type: 'success', message: 'PDF report generated and downloaded successfully!' });
+      setTimeout(() => setExportFeedback(null), 5000);
+    } catch (err) {
+      console.warn('Direct Blob download failed, attempting window popup fallback...', err);
+      try {
+        const url = api.downloadReportPDFUrl(tripId);
+        window.open(url, '_blank');
+        setExportFeedback({ type: 'info', message: 'PDF opened in a new tab.' });
+        setTimeout(() => setExportFeedback(null), 5000);
+      } catch (fallbackErr) {
+        setExportFeedback({ type: 'error', message: err.message || 'Failed to generate PDF report.' });
+        setTimeout(() => setExportFeedback(null), 6000);
+      }
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 12px auto', color: 'var(--color-primary)' }} />
+        <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-forest-ink)' }}>Compiling Financial Report...</h4>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', marginTop: '4px' }}>
+          Auditing all bookings, shared expenses, and member balance splits.
+        </p>
+      </div>
+    );
+  }
+
+  const currency = (!trip?.currency || trip.currency === 'USD') ? 'INR' : trip.currency;
+  const currSym = (currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '₹');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-        <div>
-          <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Comprehensive Trip Financial Report</h3>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', marginTop: '2px' }}>
-            Full spending analytics, category breakdown, and exportable PDF statement.
+      {/* Report Header Card */}
+      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)' }}>
+        <div style={{ maxWidth: '600px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <FileText size={20} color="var(--color-forest-ink)" />
+            <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-forest-ink)', margin: 0 }}>
+              Trip Financial Report & Audit
+            </h3>
+          </div>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', margin: 0 }}>
+            Full spending breakdown, per-person balances, and certified PDF export.
           </p>
         </div>
-        <a
-          href={api.downloadReportPDFUrl(tripId)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-primary"
-          style={{ textDecoration: 'none', fontSize: '12px' }}
-        >
-          <Download size={15} /> Export PDF Report
-        </a>
-      </div>
 
-      {/* Category breakdown */}
-      <div className="card">
-        <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>Spending by Category</h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px' }}>
-          {Object.entries(reportData?.byCategory || {}).map(([cat, amt]) => (
-            <div key={cat} style={{ backgroundColor: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>{cat}</div>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-ink)', marginTop: '4px' }}>
-                ₹{amt.toFixed(2)}
-              </div>
-            </div>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={fetchReport}
+            className="btn-secondary"
+            style={{ fontSize: '12px', padding: '9px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Refresh Report Data"
+          >
+            <RefreshCw size={14} /> Refresh
+          </button>
+          
+          <button
+            type="button"
+            onClick={handleExportPDF}
+            disabled={exportingPdf}
+            className="btn-primary"
+            style={{
+              fontSize: '13px',
+              padding: '10px 18px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              opacity: exportingPdf ? 0.7 : 1,
+              cursor: exportingPdf ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {exportingPdf ? (
+              <>
+                <RefreshCw size={15} className="animate-spin" /> Generating PDF...
+              </>
+            ) : (
+              <>
+                <Download size={15} /> Export PDF Report
+              </>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Export Status Notification */}
+      {exportFeedback && (
+        <div style={{
+          padding: '12px 16px',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '13px',
+          fontWeight: 600,
+          backgroundColor: exportFeedback.type === 'success' ? '#f0fdf4' : exportFeedback.type === 'error' ? '#fef2f2' : '#eff6ff',
+          color: exportFeedback.type === 'success' ? '#166534' : exportFeedback.type === 'error' ? '#991b1b' : '#1e40af',
+          border: `1px solid ${exportFeedback.type === 'success' ? '#bbf7d0' : exportFeedback.type === 'error' ? '#fecaca' : '#bfdbfe'}`
+        }}>
+          {exportFeedback.type === 'success' && <CheckCircle2 size={16} />}
+          {exportFeedback.type === 'error' && <AlertTriangle size={16} />}
+          {exportFeedback.type === 'info' && <Info size={16} />}
+          <span>{exportFeedback.message}</span>
+        </div>
+      )}
+
+      {/* 4 Metric Summary Badges */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '16px' }}>
+        <div className="card" style={{ padding: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', textTransform: 'uppercase' }}>Consolidated Total</div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--color-forest-ink)', marginTop: '4px' }}>
+            {currSym}{(reportData?.totalCost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+            {reportData?.durationDays ? `${reportData.durationDays} days duration` : 'Total expenses & bookings'}
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', textTransform: 'uppercase' }}>Per-Person Share</div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--color-forest-ink)', marginTop: '4px' }}>
+            {currSym}{(reportData?.perPersonAverage || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+            Equal split among {reportData?.participants?.length || 0} members
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', textTransform: 'uppercase' }}>Budget Utilization</div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: (reportData?.budgetUsedPercent || 0) > 100 ? '#dc2626' : 'var(--color-forest-ink)', marginTop: '4px' }}>
+            {reportData?.budget > 0 ? `${reportData.budgetUsedPercent}%` : 'N/A'}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+            {reportData?.budget > 0 ? `${currSym}${reportData.budget.toLocaleString('en-IN')} allocated` : 'No budget set'}
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-moss-gray)', textTransform: 'uppercase' }}>Settlement Status</div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: (reportData?.settlementTransactions?.length || 0) === 0 ? '#16a34a' : '#d97706', marginTop: '4px' }}>
+            {(reportData?.settlementTransactions?.length || 0) === 0 ? 'Balanced ✓' : `${reportData.settlementTransactions.length} Pending`}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+            {(reportData?.settlementTransactions?.length || 0) === 0 ? 'All debts cleared' : 'Transfers required'}
+          </div>
+        </div>
+      </div>
+
+      {/* Spending by Category */}
+      <div className="card">
+        <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px', color: 'var(--color-forest-ink)' }}>Spending by Category</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px' }}>
+          {Object.entries(reportData?.byCategory || {}).map(([cat, amt]) => {
+            const pct = (reportData?.totalCost || 0) > 0 ? Math.round((amt / reportData.totalCost) * 100) : 0;
+            return (
+              <div key={cat} style={{ backgroundColor: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)' }}>{cat}</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-ink)', marginTop: '4px' }}>
+                  {currSym}{amt.toFixed(2)}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--color-moss-gray)', marginTop: '4px' }}>
+                  {pct}% of total
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Member Financial Ledger */}
+      <div className="card">
+        <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px', color: 'var(--color-forest-ink)' }}>Member Balances</h4>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left', color: 'var(--color-text-secondary)' }}>
+                <th style={{ padding: '10px 8px' }}>Member</th>
+                <th style={{ padding: '10px 8px', textAlign: 'right' }}>Total Paid</th>
+                <th style={{ padding: '10px 8px', textAlign: 'right' }}>Total Owed</th>
+                <th style={{ padding: '10px 8px', textAlign: 'right' }}>Net Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData?.participants?.map((p) => {
+                const net = p.netBalance || ((p.totalPaid || 0) - (p.totalOwed || 0));
+                const isCreditor = net > 0.01;
+                const isDebtor = net < -0.01;
+                return (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px 8px' }}>
+                      <strong style={{ color: 'var(--color-forest-ink)' }}>{p.name}</strong>
+                      {p.email && <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{p.email}</div>}
+                    </td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 600 }}>
+                      {currSym}{(p.totalPaid || 0).toFixed(2)}
+                    </td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 600 }}>
+                      {currSym}{(p.totalOwed || 0).toFixed(2)}
+                    </td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        backgroundColor: isCreditor ? '#f0fdf4' : isDebtor ? '#fef2f2' : '#f8fafc',
+                        color: isCreditor ? '#166534' : isDebtor ? '#991b1b' : '#475569',
+                        border: `1px solid ${isCreditor ? '#86efac' : isDebtor ? '#fca5a5' : '#cbd5e1'}`
+                      }}>
+                        {isCreditor ? `Gets ${currSym}${net.toFixed(2)}` : isDebtor ? `Owes ${currSym}${Math.abs(net).toFixed(2)}` : 'Settled (₹0.00)'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* AI Recommendations */}
+      {reportData?.recommendations && reportData.recommendations.length > 0 && (
+        <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <Sparkles size={18} color="#2563eb" />
+            <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-forest-ink)', margin: 0 }}>
+              AI Financial Insights & Recommendations
+            </h4>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '12px' }}>
+            {reportData.recommendations.map((rec, idx) => (
+              <div key={idx} style={{ padding: '12px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <strong style={{ fontSize: '13px', color: '#0369a1' }}>{rec.title}</strong>
+                  {rec.savingsAmount > 0 && (
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', backgroundColor: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>
+                      Save ~{currSym}{rec.savingsAmount}
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: '12px', color: '#334155', margin: 0, lineHeight: 1.4 }}>
+                  {rec.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
