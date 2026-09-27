@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -15,9 +15,31 @@ import {
 export const TripWorkspace = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const urlTab = searchParams.get('tab') || 'dashboard';
+  const [activeTab, setActiveTabState] = useState(urlTab);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') || 'dashboard';
+    if (tabParam !== activeTab) {
+      setActiveTabState(tabParam);
+    }
+  }, [searchParams]);
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'dashboard') {
+        next.delete('tab');
+      } else {
+        next.set('tab', tab);
+      }
+      return next;
+    }, { replace: true });
+  };
   const [loading, setLoading] = useState(true);
   const [tripData, setTripData] = useState(null);
   const [copiedInvite, setCopiedInvite] = useState(false);

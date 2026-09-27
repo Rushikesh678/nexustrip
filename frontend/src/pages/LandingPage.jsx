@@ -1,1189 +1,867 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   Compass, ArrowRight, ShieldCheck, Zap, Users, Receipt, CheckCircle2,
-  Calculator, Sparkles, Scale, Layers, MapPin,
-  CalendarCheck, Clock, FileText, BookOpen, Camera,
-  Check, TrendingUp, KeyRound, Tag, Utensils
+  Calculator, Sparkles, Scale, BookOpen, Camera, CalendarCheck,
+  Check, ArrowUpRight, ChevronRight, HelpCircle, Layers, MapPin, Download,
+  CreditCard, Smartphone, Info, DollarSign, Clock, ShieldAlert, Cpu
 } from 'lucide-react';
 
 export const LandingPage = () => {
-  // Interactive Calculator State
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Quick Join Code Input
+  const [inviteCode, setInviteCode] = useState('');
+
+  // Interactive Guide Step & Sub-Tab
+  const [activeGuideStep, setActiveGuideStep] = useState(0);
+  const [guideDetailTab, setGuideDetailTab] = useState('overview'); // 'overview' | 'example' | 'pro-tips'
+
+  // FAQ Accordion State
+  const [openFaq, setOpenFaq] = useState(null);
+
+  // Interactive Live Split Calculator
   const [numTravelers, setNumTravelers] = useState(5);
   const [totalExpenses, setTotalExpenses] = useState(4800);
-  const [studentDiscount, setStudentDiscount] = useState(true);
   const [hasSponsor, setHasSponsor] = useState(true);
+  const [hasStudent, setHasStudent] = useState(true);
 
-  // Interactive Feature Explorer Tab State
-  const [activeFeatureTab, setActiveFeatureTab] = useState('itinerary');
-
-  // Calculated stats for demo calculator
-  // Total weight: standard = 1.0, student = 0.8, sponsor = 1.5
-  const sponsorWeight = hasSponsor ? 1.5 : 1.0;
-  const studentWeight = studentDiscount ? 0.8 : 1.0;
-  const standardCount = Math.max(1, numTravelers - (hasSponsor ? 1 : 0) - (studentDiscount ? 1 : 0));
-  const totalWeights = (hasSponsor ? sponsorWeight : 0) + (studentDiscount ? studentWeight : 0) + (standardCount * 1.0);
-  
+  // Calculation for live mini demo
+  const sponsorMultiplier = hasSponsor ? 1.5 : 1.0;
+  const studentMultiplier = hasStudent ? 0.8 : 1.0;
+  const standardCount = Math.max(1, numTravelers - (hasSponsor ? 1 : 0) - (hasStudent ? 1 : 0));
+  const totalWeights = (hasSponsor ? sponsorMultiplier : 0) + (hasStudent ? studentMultiplier : 0) + (standardCount * 1.0);
   const baseShare = totalExpenses / (totalWeights || 1);
-  const calculatedStandardShare = baseShare.toFixed(2);
-  const calculatedStudentShare = (baseShare * 0.8).toFixed(2);
-  const calculatedSponsorShare = (baseShare * 1.5).toFixed(2);
-  const minimizedTransactions = Math.max(1, numTravelers - 1);
-  const rawPairwiseTransactions = (numTravelers * (numTravelers - 1)) / 2;
+  const minimizedTxns = Math.max(1, numTravelers - 1);
+  const rawTxns = (numTravelers * (numTravelers - 1)) / 2;
 
-  // Feature Explorer Modules
-  const featureModules = [
+  const handleQuickJoin = (e) => {
+    e.preventDefault();
+    if (!inviteCode.trim()) return;
+    if (user) {
+      navigate('/trips');
+    } else {
+      navigate(`/register?code=${encodeURIComponent(inviteCode.trim().toUpperCase())}`);
+    }
+  };
+
+  const guideSteps = [
     {
-      id: 'itinerary',
-      title: 'Day-by-Day Itinerary',
-      icon: Compass,
-      badge: 'COLLABORATIVE TIMELINE',
+      step: '01',
+      title: 'Trip Setup, Smart Roles & Multi-Tier Multipliers',
+      shortTitle: 'Setup & Multipliers',
+      tagline: 'Instant 4-letter invite codes, host permissions, and weighted cost tiers',
+      icon: Users,
       color: 'var(--color-meadow)',
-      tagline: 'Time-slotted multi-day schedule with direct cost & booking integration',
-      description: 'Organize each day into Morning, Afternoon, Evening, and Night blocks. Tag activities with categories like Dining, Lodging, Transport, and Adventures. Attach actual expenses and bookings directly to specific blocks with 1-click.',
-      highlights: [
-        'Time slot grouping: Morning, Afternoon, Evening, Night & Custom hours',
-        'Direct 1-click links to group expenses and OCR receipt scans',
-        'Auto-generate itinerary from confirmed bookings and trip dates',
-        'Visual category tags with cost estimates vs actual variances'
-      ]
+      badge: 'PHASE 1: ONBOARDING & ARCHITECTURE',
+      overview: 'Getting a group aligned before booking is where most trips fall apart. TripLedger lets the organizer establish the destination, travel dates, overall budget ceiling, and base currency in seconds. Each trip receives a unique 4-character invite code (e.g., EXP-7H4P) so friends can join from mobile or desktop instantly.',
+      deepDive: [
+        {
+          title: 'Custom Roles & Host Governance',
+          desc: 'Designate Trip Hosts with administrative powers (managing bookings, approving expenses, finalizing settlement) while general Travelers can log receipts, view the schedule, and settle personal debts.'
+        },
+        {
+          title: 'Fair Multiplier Cost Tiers',
+          desc: 'Not everyone in a friend group has identical financial means. Assign custom multipliers such as Student/Budget (0.8x), Standard (1.0x), or Sponsor/Working Professional (1.5x). When shared expenses are logged, the math automatically adjusts each person’s share proportionally without awkward renegotiations.'
+        },
+        {
+          title: 'Automated Mid-Trip Arrival & Early Departure Freeze',
+          desc: 'Friends arriving 2 days late or leaving early won\'t be unfairly billed. TripLedger timestamps arrival and departure windows so that expenses incurred after a traveler departs are automatically locked out from their ledger.'
+        }
+      ],
+      example: {
+        scenario: 'Alex organizes a 5-day mountain retreat with 5 friends. Student friend Vikram has a tighter budget, while working friend Priya offers to sponsor a larger portion.',
+        action: 'Alex assigns Vikram a 0.8x multiplier tier, Standard 1.0x to 3 others, and Priya a 1.5x tier.',
+        outcome: 'On a ₹5,000 shared cabin expense: Vikram pays only ₹755, Standard members pay ₹943 each, and Priya covers ₹1,415. Everyone travels happily with zero financial resentment.'
+      },
+      proTip: 'Set your overall trip budget cap during setup. The live dashboard tracks real-time burn rate and alerts you the moment group bookings approach 85% of your target.'
     },
     {
-      id: 'expenses',
-      title: 'Expenses & Side Quests',
-      icon: Receipt,
-      badge: 'ADVANCED SPLITTING',
-      color: 'var(--color-river-blue)',
-      tagline: 'Equal, percentage, tiered multipliers & isolated side-quest sub-groups',
-      description: 'No more one-size-fits-all splitting. Split by exact amounts, percentage shares, or custom multipliers (Student 0.8x, Sponsor 1.5x). Run Side Quests for private sub-adventures (e.g., scuba diving) without billing uninvolved friends.',
-      highlights: [
-        '4 Split Modes: Equal, Weighted %, Custom Amounts & Multipliers',
-        'Side Quests: Isolate sub-group costs from non-participating members',
-        'Multi-Payer support: Record expenses funded by multiple people',
-        'Automated early departure freeze so departed travelers aren\'t billed'
-      ]
-    },
-    {
-      id: 'ocr',
-      title: 'Smart Receipt OCR',
-      icon: Camera,
-      badge: 'AUTOMATED SCANNER',
-      color: 'var(--color-sun-yellow)',
-      tagline: 'Instant itemized bill extraction with drag-and-drop participant assignment',
-      description: 'Snap a picture of any cafe bill, grocery invoice, or tour receipt. The OCR engine parses line items, taxes, tips, and service fees, letting you assign individual meals and drinks to specific travelers in seconds.',
-      highlights: [
-        'Instant camera upload or drag-and-drop bill image processing',
-        'Automated line-item, subtotal, tax, and tip extraction',
-        'Assign items to one or multiple travelers with individual checkboxes',
-        'Direct ledger injection into trip expenses with verified receipts'
-      ]
-    },
-    {
-      id: 'bookings',
-      title: 'Bookings & Reservations',
+      step: '02',
+      title: 'Master Itinerary, AI Discovery & Bookings Hub',
+      shortTitle: 'Timeline & Bookings Vault',
+      tagline: 'Time-slotted multi-day schedules, reservation vault, and 1-click booking sync',
       icon: CalendarCheck,
-      badge: 'CENTRALIZED VAULT',
-      color: '#a78bfa',
-      tagline: 'All flights, hotels, Airbnb stays, car rentals & tickets in one secure hub',
-      description: 'Keep your group organized with structured reservation cards. Track confirmation numbers, check-in / check-out times, departure gates, ticket attachments, and reservation statuses (Confirmed, Pending, Cancelled).',
-      highlights: [
-        'Support for Flights, Hotels, Airbnbs, Car Rentals, Trains & Events',
-        'Store confirmation codes, provider links, and voucher attachments',
-        'Track payer attribution and shared cost distribution seamlessly',
-        'Sync booking dates directly into your master trip itinerary'
-      ]
-    },
-    {
-      id: 'settlement',
-      title: 'Settlement & Debt Minimizer',
-      icon: Scale,
-      badge: 'GRAPH SIMPLIFICATION',
-      color: 'var(--color-meadow)',
-      tagline: 'Greedy algorithm that collapses complex debt webs into minimum payments',
-      description: 'Eliminate awkward multi-way transfers. TripLedger calculates the mathematical net balances of every traveler and optimizes debts to minimize the total number of transactions required to settle up completely.',
-      highlights: [
-        'Reduces N*(N-1)/2 complex debts to at most N-1 simple direct transfers',
-        'Direct UPI & payment tracking with 1-click "Mark as Paid" status',
-        'Interactive Settlement Matrix showing pairwise balance details',
-        'Audit-verified receipts for each settled payment'
-      ]
-    },
-    {
-      id: 'ledger',
-      title: 'Double-Entry Audit Ledger',
-      icon: BookOpen,
-      badge: 'MATHEMATICAL RIGOR',
       color: 'var(--color-river-blue)',
-      tagline: 'Strict debit and credit financial accounting with immutable audit trail',
-      description: 'Built on real accounting principles. Every transaction generates matching debit and credit entries. Every recalculation, refund, and payment is permanently timestamped for complete trust and transparency.',
-      highlights: [
-        'Strict Double-Entry bookkeeping: Total Debits strictly equal Total Credits',
-        'Immutable timestamped transaction log with actor ID tracking',
-        'Filterable audit view by traveler, date range, and expense category',
-        'Zero math discrepancies — guaranteed financial accuracy'
-      ]
+      badge: 'PHASE 2: COLLABORATIVE PLANNING',
+      overview: 'Keep everyone on the same page with a structured, collaborative itinerary. Organize each travel day into distinct time windows (Morning, Afternoon, Evening, Night) with custom activity categories. Centralize all flight tickets, hotel vouchers, Airbnbs, and activity passes into a shared vault.',
+      deepDive: [
+        {
+          title: 'Time-Slotted Collaborative Timeline',
+          desc: 'Group daily activities into Morning, Afternoon, Evening, and Night blocks. Tag items with categories (Dining, Adventure, Lodging, Transport, Sightseeing) with cost estimates vs actuals.'
+        },
+        {
+          title: 'Centralized Bookings & Voucher Hub',
+          desc: 'Store airline confirmation codes (PNR), hotel check-in times, Airbnb door pin codes, car rental vouchers, and ticket PDFs in one shared hub so any traveler can present details at check-in.'
+        },
+        {
+          title: 'AI Destination Insights & 1-Click Sync',
+          desc: 'Explore curated sightseeing spots, top cafes, hidden gems, and adventure activities tailored to your destination city. Add any recommended spot directly into your itinerary schedule with 1-click.'
+        }
+      ],
+      example: {
+        scenario: 'On Day 3 in Bali, the group wants to visit a cliffside beach club and have dinner at a local seafood grill.',
+        action: 'The organizer adds the beach club to the "Afternoon" block with booking ref #BC-891, and seafood grill to the "Evening" block.',
+        outcome: 'All 5 travelers can open their phones, check arrival times, view driver contact details, and see estimated costs directly on the master schedule.'
+      },
+      proTip: 'Link bookings directly to itinerary blocks. Confirmed bookings automatically generate scheduled timeline cards with vendor details pre-filled.'
     },
     {
-      id: 'recommendations',
-      title: 'Smart AI Recommendations',
-      icon: Sparkles,
-      badge: 'DESTINATION AI',
+      step: '03',
+      title: 'Smart Expense Logging, Camera OCR & Side Quests',
+      shortTitle: 'OCR Bills & Side Quests',
+      tagline: 'Itemized receipt scanner, multi-payer splits, and private sub-group accounting',
+      icon: Receipt,
       color: 'var(--color-sun-yellow)',
-      tagline: 'Curated spots, cafes, attractions & activities with 1-click itinerary add',
-      description: 'Discover the best attractions, dining hotspots, adventure activities, nightlife, and local travel tips for your destination. Easily add any recommended place straight into your daily schedule with a single click.',
-      highlights: [
-        'Curated categories: Dining, Sightseeing, Adventure, Nightlife & Hidden Gems',
-        'Real-time destination switching for multi-city road trips',
-        '1-click "Add to Itinerary" with pre-filled category and location details',
-        'Detailed descriptions, price hints, and insider tips'
-      ]
+      badge: 'PHASE 3: EXPENSE EXECUTION',
+      overview: 'Say goodbye to tedious manual data entry and messy group chats. Snap a picture of restaurant bills, grocery receipts, or tour invoices. The OCR engine parses itemized line items, subtotals, taxes, and service fees for 1-click drag-and-drop traveler assignment.',
+      deepDive: [
+        {
+          title: 'Automated Camera OCR Receipt Parser',
+          desc: 'Upload a bill photo or paste invoice text. The OCR system reads individual line items, dishes, drinks, tax percentages, and tips, letting you assign specific dishes to specific diners.'
+        },
+        {
+          title: 'Side Quests (Sub-Group Isolation)',
+          desc: 'When 3 friends go scuba diving or cocktail tasting while 2 others relax at the hotel, create an isolated "Side Quest". Costs are strictly distributed among the 3 participants, charging uninvolved members exactly ₹0.'
+        },
+        {
+          title: '4 Flexible Split Models & Multi-Payers',
+          desc: 'Split by Equal share, Exact amounts, Weighted percentages, or Tier Multipliers. When multiple people co-fund a massive villa deposit, record multi-payer distributions seamlessly.'
+        }
+      ],
+      example: {
+        scenario: 'A cafe bill totals ₹3,600 with 6 coffees, 3 desserts, 2 cocktails, and 5% GST. Only 2 people ordered cocktails.',
+        action: 'The OCR scanner extracts all items. Cocktails are assigned strictly to the 2 drinkers, coffee/desserts to everyone, and GST is split proportionally.',
+        outcome: 'The 2 cocktail drinkers pay ₹1,150 each, while the other 3 non-drinkers pay only ₹433 each. Complete fairness with zero manual arithmetic.'
+      },
+      proTip: 'Use Side Quests anytime a small group takes an Uber or orders extra snacks. It ensures non-participating friends never pay a penny for activities they didn\'t join.'
     },
     {
-      id: 'reports',
-      title: 'Trip Financial Reports',
-      icon: FileText,
-      badge: 'EXECUTIVE EXPORT',
-      color: '#fb923c',
-      tagline: 'Visual category analytics, per-person statements & PDF / CSV ledger export',
-      description: 'Get a crystal-clear post-trip financial debrief. View category spending charts, budget variance reports, individual statements for each member, and download complete PDF and CSV files for tax or personal records.',
-      highlights: [
-        'Category breakdown charts: Food, Lodging, Transport, Activities, Misc',
-        'Individual statements: exactly what each member paid, consumed & settled',
-        'Budget vs Actual variance metrics with over-budget alerts',
-        'Print-ready PDF reports and raw ledger CSV exports'
-      ]
+      step: '04',
+      title: 'Greedy Debt Minimizer, Double-Entry Ledger & Settle Up',
+      shortTitle: 'Minimal Settle & Ledger',
+      tagline: 'Graph simplification algorithm, 1-click UPI payments, and immutable audit logs',
+      icon: Scale,
+      color: 'var(--color-meadow)',
+      badge: 'PHASE 4: MATHEMATICAL SETTLEMENT',
+      overview: 'At the end of a trip, circular debts create awkward payment webs where everyone owes everyone else. TripLedger\'s graph simplification engine calculates net balances and computes the minimum number of direct transactions required to balance the entire group to ₹0.00.',
+      deepDive: [
+        {
+          title: 'Greedy Graph Debt Reduction Algorithm',
+          desc: 'In an 8-person trip, raw debts create up to 28 confusing pairwise transfers. TripLedger collapses this graph into at most 7 direct payments, eliminating circular middleman transfers completely.'
+        },
+        {
+          title: '1-Click UPI, Venmo & PayPal Settle Up',
+          desc: 'Settlement cards display direct UPI QR codes, UPI IDs, Venmo handles, and PayPal links. Once paid, 1-click confirmation updates the ledger with a cryptographic timestamp.'
+        },
+        {
+          title: 'Strict Double-Entry Rigor & PDF Debriefs',
+          desc: 'Every transaction creates balancing Debit and Credit entries with full audit logs. Export comprehensive PDF debriefs with category spending charts, budget variance, and per-person statements.'
+        }
+      ],
+      example: {
+        scenario: 'After 5 days of travel across 42 expenses, the raw pairwise debt web involves 14 separate transfers between 6 friends.',
+        action: 'TripLedger calculates net credits and net debits, matching highest debtors with highest creditors.',
+        outcome: 'The 14 confusing debts collapse into just 3 direct UPI transfers. All balances reach ₹0.00 with verified payment receipts.'
+      },
+      proTip: 'Download the itemized PDF financial report at the end of the trip to share in your group chat or keep for personal tax and accounting records.'
     }
   ];
 
-  const currentFeature = featureModules.find(m => m.id === activeFeatureTab) || featureModules[0];
+  const faqs = [
+    {
+      q: 'How does TripLedger differ from regular expense splitting apps like Splitwise?',
+      a: 'Standard apps are limited to basic expense lists and lack trip coordination. TripLedger is a complete group travel operating system: it combines Day-by-Day Itineraries, a Centralized Bookings Vault, Camera OCR Receipt Scanners, Isolated Side Quests, Tiered Cost Multipliers (Student vs Sponsor), AI Destination Insights, and strict Double-Entry Ledger accounting that guarantees zero math discrepancies.'
+    },
+    {
+      q: 'How do Tiered Cost Multipliers work mathematically?',
+      a: 'Each participant has a cost multiplier (e.g. Student = 0.8x, Standard = 1.0x, Sponsor = 1.5x). When an expense is split using tiered sharing, each person\'s share is calculated as: (Their Multiplier ÷ Sum of All Multipliers) × Total Expense. This ensures proportional contributions that respect everyone\'s budget.'
+    },
+    {
+      q: 'What happens if a friend arrives late or leaves the trip early?',
+      a: 'During participant setup, each traveler has an arrival and departure date. If a member departs on Day 3 of a 5-day trip, any expenses or bookings logged on Days 4 and 5 automatically exclude them from the split, ensuring departed friends are never charged for activities they did not attend.'
+    },
+    {
+      q: 'How does the Smart Receipt OCR scanner work?',
+      a: 'You can upload an image or take a photo of any restaurant or shop receipt directly on your phone. The OCR parser detects item descriptions, line amounts, subtotals, taxes (like GST or VAT), and tip amounts. You can then assign specific items to specific travelers with 1-click checkboxes.'
+    },
+    {
+      q: 'What is a "Side Quest" in TripLedger?',
+      a: 'A Side Quest is an isolated sub-group expense. For example, if 3 out of 6 friends go scuba diving, you tag that expense as a Side Quest. Only those 3 participating members share the bill, while the other 3 friends have ₹0 attributed to them.'
+    },
+    {
+      q: 'How does the Greedy Debt Minimization algorithm work?',
+      a: 'Instead of making everyone pay back every single person they borrowed from (which causes up to N*(N-1)/2 transactions), TripLedger calculates each person\'s Net Balance (Total Paid minus Total Consumed). It then matches the biggest debtor with the biggest creditor in a greedy graph solver, reducing transactions to at most N-1 simple direct transfers.'
+    }
+  ];
+
+  const features = [
+    {
+      icon: CalendarCheck,
+      title: 'Day-by-Day Itinerary',
+      description: 'Time-slotted schedule grouped by Morning, Afternoon, Evening, and Night with live budget & booking integration.',
+      tag: 'Timeline'
+    },
+    {
+      icon: Camera,
+      title: 'Smart Receipt OCR',
+      description: 'Snap photos of paper bills. Auto-extract dishes, drinks, taxes, and service fees with individual line item assignment.',
+      tag: 'AI Scanner'
+    },
+    {
+      icon: Zap,
+      title: 'Side Quests Sub-Splitting',
+      description: 'Private adventures (clubbing, scuba, rentals) billed strictly to participating members with ₹0 charged to others.',
+      tag: 'Fair Splits'
+    },
+    {
+      icon: Scale,
+      title: 'Minimal Debt Settlement',
+      description: 'Greedy algorithm collapses messy multi-person debt webs into the absolute minimum direct payments.',
+      tag: '1-Click Settle'
+    },
+    {
+      icon: BookOpen,
+      title: 'Double-Entry Rigor',
+      description: 'Full debit and credit immutable accounting ledger with timestamped audit logs. Zero discrepancies guaranteed.',
+      tag: 'Audit Trail'
+    },
+    {
+      icon: Download,
+      title: 'Executive PDF Reports',
+      description: 'Export itemized individual member statements, category breakdown charts, and printable financial statements.',
+      tag: 'Debriefs'
+    }
+  ];
 
   return (
     <div style={{ backgroundColor: 'var(--color-paper-cream)', minHeight: '100vh', color: 'var(--color-charcoal)' }}>
-      
+
       {/* 1. HERO SECTION */}
       <section style={{
         backgroundColor: 'var(--color-forest-ink)',
         color: 'var(--color-paper-cream)',
-        paddingTop: 'clamp(40px, 8vw, 80px)',
-        paddingBottom: 'clamp(50px, 9vw, 90px)',
+        paddingTop: 'clamp(36px, 6vw, 70px)',
+        paddingBottom: 'clamp(40px, 7vw, 80px)',
+        borderBottom: '2px solid var(--color-sage-border)',
         position: 'relative',
-        overflow: 'hidden',
-        borderBottom: '2px solid var(--color-sage-border)'
+        overflow: 'hidden'
       }}>
         <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
-
-          {/* Top Eyebrow */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-            <span className="eyebrow-label">00 / THE COMPLETE GROUP TRIP OPERATING SYSTEM</span>
-            <div style={{ height: '1px', flex: 1, minWidth: '40px', backgroundColor: 'var(--color-sage-border)' }} />
-            <span style={{ fontSize: '11px', color: 'var(--color-meadow)', fontWeight: 700, letterSpacing: '0.1em' }}>
-              ● 10 CORE INTEGRATED MODULES
+          
+          {/* Top Pill */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'rgba(85, 221, 74, 0.12)',
+            border: '1px solid rgba(85, 221, 74, 0.35)',
+            padding: '6px 14px',
+            borderRadius: '9999px',
+            marginBottom: '20px'
+          }}>
+            <Sparkles size={14} color="var(--color-meadow)" />
+            <span style={{ fontSize: '12px', color: 'var(--color-meadow)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              The Group Trip Operating System
             </span>
           </div>
 
-          {/* Massive Display Title */}
+          {/* Headline */}
           <h1 className="deacon-display" style={{
-            fontSize: 'clamp(38px, 7.5vw, 104px)',
+            fontSize: 'clamp(32px, 6.5vw, 84px)',
             color: 'var(--color-paper-cream)',
             marginBottom: '18px',
-            maxWidth: '1060px',
-            lineHeight: 0.92
+            maxWidth: '960px',
+            lineHeight: 0.95,
+            wordBreak: 'break-word'
           }}>
             PLAN TOGETHER.<br />
             SPLIT PRECISELY.<br />
-            <span style={{ color: 'var(--color-meadow)' }}>SETTLE WITHOUT THE DRAMA.</span>
+            <span style={{ color: 'var(--color-meadow)' }}>SETTLE WITH ZERO DRAMA.</span>
           </h1>
 
           {/* Subtitle */}
           <p style={{
-            fontSize: 'clamp(15px, 2.1vw, 21px)',
+            fontSize: 'clamp(15px, 1.8vw, 19px)',
             color: '#c9d1c8',
-            maxWidth: '780px',
-            lineHeight: 1.5,
-            marginBottom: '32px',
-            fontFamily: 'var(--font-graphik)'
+            maxWidth: '680px',
+            lineHeight: 1.55,
+            marginBottom: '32px'
           }}>
-            The all-in-one group trip platform engineered with <strong>double-entry ledger rigor</strong>. Day-by-day collaborative itineraries, receipt OCR scanning, isolated side quests, centralized bookings hub, AI discovery, and minimal debt settlements.
+            Collaborative day-by-day itineraries, instant OCR receipt scanning, fair multi-tier splits, and minimal debt settlement powered by double-entry accounting.
           </p>
 
-          {/* CTAs */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center', marginBottom: '36px' }}>
-            <Link to="/register" className="btn-meadow" style={{ flexGrow: 0 }}>
-              START FREE TRIP <ArrowRight size={18} />
-            </Link>
-            <a href="#feature-explorer" className="btn-ghost-dark" style={{ flexGrow: 0 }}>
-              EXPLORE ALL FEATURES
-            </a>
-            <a href="#calculator" className="btn-ghost-dark" style={{ flexGrow: 0 }}>
-              LIVE SPLIT CALCULATOR
-            </a>
-          </div>
-
-          {/* Quick Feature Ticker Pills */}
+          {/* Action CTAs */}
           <div style={{
             display: 'flex',
             flexWrap: 'wrap',
-            gap: '8px',
-            marginBottom: '40px',
-            borderTop: '1px solid rgba(86,96,83,0.6)',
-            paddingTop: '16px'
+            gap: '12px',
+            alignItems: 'center',
+            marginBottom: '36px'
           }}>
-            {[
-              { icon: Compass, text: 'Day-by-Day Itinerary' },
-              { icon: Receipt, text: 'Side Quest Sub-Splits' },
-              { icon: Camera, text: 'Smart OCR Bill Scanner' },
-              { icon: CalendarCheck, text: 'Centralized Bookings' },
-              { icon: Scale, text: 'Minimal Debt Settle' },
-              { icon: BookOpen, text: 'Double-Entry Ledger' },
-              { icon: Sparkles, text: 'AI Destination Insights' },
-              { icon: FileText, text: 'Executive PDF Reports' }
-            ].map((pill, idx) => {
-              const Icon = pill.icon;
-              return (
-                <div key={idx} style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  padding: '5px 12px',
-                  borderRadius: '9999px',
-                  fontSize: '12px',
-                  color: '#e5e7eb',
-                  fontWeight: 600
-                }}>
-                  <Icon size={13} color="var(--color-meadow)" />
-                  {pill.text}
-                </div>
-              );
-            })}
+            {user ? (
+              <Link to="/trips" className="btn-meadow" style={{ textDecoration: 'none' }}>
+                GO TO MY TRIPS <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <>
+                <Link to="/register" className="btn-meadow" style={{ textDecoration: 'none' }}>
+                  START FREE TRIP <ArrowRight size={18} />
+                </Link>
+                <Link to="/login" className="btn-ghost-dark" style={{ textDecoration: 'none' }}>
+                  SIGN IN
+                </Link>
+              </>
+            )}
+            <a href="#how-it-works" className="btn-ghost-dark" style={{ textDecoration: 'none' }}>
+              DEEP DIVE USER GUIDE ↓
+            </a>
           </div>
 
-          {/* HERO IMAGE FRAMEWORK */}
+          {/* Quick Join Code Form */}
           <div style={{
-            position: 'relative',
-            borderRadius: '20px',
-            border: '2px solid var(--color-sage-border)',
-            overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
-            backgroundColor: 'var(--color-deep-navy)'
+            maxWidth: '480px',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
           }}>
-            <img
-              src="/forest.png"
-              alt="Vintage Forest Expedition Hero Artwork"
-              style={{
-                width: '100%',
-                maxHeight: '440px',
-                minHeight: '220px',
-                objectFit: 'cover',
-                display: 'block'
-              }}
-            />
-
-            {/* Overlapping Badges */}
-            <div style={{ position: 'absolute', top: 'clamp(10px, 2.5vw, 24px)', left: 'clamp(10px, 2.5vw, 24px)' }}>
-              <span className="sticker-badge">FULL EXPEDITION ENGINE</span>
-            </div>
-
-            <div style={{ position: 'absolute', top: 'clamp(10px, 2.5vw, 24px)', right: 'clamp(10px, 2.5vw, 24px)' }}>
-              <span className="sticker-badge-navy">DOUBLE-ENTRY LEDGER VERIFIED</span>
-            </div>
-
-            {/* Floating Live Trip Status Card */}
-            <div style={{
-              position: 'absolute',
-              bottom: 'clamp(10px, 2.5vw, 20px)',
-              left: 'clamp(10px, 2.5vw, 20px)',
-              right: 'clamp(10px, 2.5vw, 20px)',
-              backgroundColor: 'rgba(18, 35, 21, 0.94)',
-              backdropFilter: 'blur(10px)',
-              padding: 'clamp(12px, 2vw, 16px) clamp(14px, 3vw, 20px)',
-              borderRadius: '14px',
-              border: '1px solid var(--color-sage-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              flexWrap: 'wrap'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-paper-cream)', opacity: 0.9 }}>
+              🎟️ Have a Trip Invite Code?
+            </span>
+            <form onSubmit={handleQuickJoin} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="e.g. EXP-9K2M"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                maxLength={10}
+                style={{
+                  flex: '1 1 180px',
+                  backgroundColor: 'rgba(0,0,0,0.4)',
+                  border: '1px solid var(--color-sage-border)',
+                  color: 'var(--color-paper-cream)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em'
+                }}
+              />
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{
+                  padding: '10px 18px',
+                  fontSize: '13px',
+                  whiteSpace: 'nowrap',
                   backgroundColor: 'var(--color-meadow)',
                   color: 'var(--color-forest-ink)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                JOIN TRIP
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 2. HOW TRIPLEDGER WORKS (VERBOSE INTERACTIVE USER GUIDE) */}
+      <section id="how-it-works" style={{
+        paddingTop: 'clamp(40px, 7vw, 80px)',
+        paddingBottom: 'clamp(40px, 7vw, 80px)',
+        maxWidth: 'var(--page-max-width)',
+        margin: '0 auto',
+        paddingLeft: 'clamp(16px, 4vw, 24px)',
+        paddingRight: 'clamp(16px, 4vw, 24px)'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: 'var(--color-forest-ink)',
+            color: 'var(--color-meadow)',
+            padding: '5px 14px',
+            borderRadius: '9999px',
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            marginBottom: '14px'
+          }}>
+            <HelpCircle size={14} /> COMPLETE MASTERCLASS & WORKFLOW TUTORIAL
+          </div>
+          <h2 style={{
+            fontSize: 'clamp(28px, 4.5vw, 52px)',
+            color: 'var(--color-forest-ink)',
+            marginBottom: '12px',
+            lineHeight: 1.05
+          }}>
+            THE COMPLETE USER GUIDE
+          </h2>
+          <p style={{ fontSize: 'clamp(14px, 1.6vw, 17px)', color: 'var(--color-charcoal)', maxWidth: '640px', margin: '0 auto', opacity: 0.85, lineHeight: 1.5 }}>
+            A comprehensive, step-by-step deep dive into how TripLedger coordinates, splits, and settles your group travel with zero stress.
+          </p>
+        </div>
+
+        {/* Step Selector Pills (Mobile Scrollable) */}
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          overflowX: 'auto',
+          paddingBottom: '12px',
+          marginBottom: '24px',
+          WebkitOverflowScrolling: 'touch'
+        }}>
+          {guideSteps.map((s, idx) => {
+            const Icon = s.icon;
+            const isSelected = activeGuideStep === idx;
+            return (
+              <button
+                key={s.step}
+                onClick={() => {
+                  setActiveGuideStep(idx);
+                  setGuideDetailTab('overview');
+                }}
+                style={{
+                  flex: '1 0 auto',
+                  minWidth: '200px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '14px 18px',
+                  borderRadius: '14px',
+                  border: `2px solid ${isSelected ? 'var(--color-forest-ink)' : 'var(--color-border)'}`,
+                  backgroundColor: isSelected ? 'var(--color-forest-ink)' : 'white',
+                  color: isSelected ? 'var(--color-paper-cream)' : 'var(--color-charcoal)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                  boxShadow: isSelected ? '0 4px 14px rgba(18,35,21,0.15)' : 'none'
+                }}
+              >
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: isSelected ? 'var(--color-meadow)' : 'rgba(0,0,0,0.06)',
+                  color: isSelected ? 'var(--color-forest-ink)' : 'var(--color-charcoal)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: '900',
+                  fontWeight: 800,
+                  fontSize: '14px',
                   flexShrink: 0
                 }}>
-                  <Compass size={22} />
+                  {s.step}
                 </div>
                 <div>
-                  <h4 style={{ color: 'var(--color-paper-cream)', fontSize: '15px', marginBottom: '2px', fontWeight: 800 }}>
-                    MANALI HIMALAYAN EXPEDITION 2026
-                  </h4>
-                  <p style={{ color: 'var(--color-moss-gray)', fontSize: '12px' }}>
-                    6 Members • ₹48,500 Group Spend • 100% Balanced • 2 Side Quests Active
-                  </p>
+                  <div style={{ fontSize: '11px', opacity: isSelected ? 0.85 : 0.6, fontWeight: 700, letterSpacing: '0.05em' }}>
+                    STEP {s.step}
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {s.shortTitle}
+                  </div>
                 </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="badge badge-success" style={{ fontSize: '11px' }}>
-                  <ShieldCheck size={12} /> Ledger In Sync
-                </span>
-                <span className="badge badge-sidequest" style={{ fontSize: '11px' }}>
-                  OCR Active
-                </span>
-              </div>
-            </div>
-          </div>
-
+              </button>
+            );
+          })}
         </div>
-      </section>
 
-
-      {/* 2. THE 10 CORE PLATFORM PILLARS (ALL WEBSITE FEATURES SHOWCASE) */}
-      <section style={{ padding: 'clamp(48px, 8vw, 96px) 0', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
-          
-          <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto clamp(36px, 6vw, 64px) auto' }}>
-            <span className="eyebrow-label">01 / COMPLETE FEATURE DIRECTORY</span>
-            <h2 style={{ fontSize: 'clamp(28px, 5.5vw, 62px)', marginTop: '12px', color: 'var(--color-forest-ink)' }}>
-              EVERY FEATURE YOUR TRIP NEEDS.<br />NONE OF THE GUESSWORK.
-            </h2>
-            <p style={{ fontSize: '16px', color: '#555555', marginTop: '12px', lineHeight: 1.5 }}>
-              From initial itinerary drafting to the final settlement UPI transfer, TripLedger covers the complete group expedition lifecycle with real-time financial tracking and mathematical accuracy.
-            </p>
-          </div>
-
-          {/* Comprehensive 10-Feature Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
-            gap: '24px'
-          }}>
-
-            {/* Feature 1: Day-by-Day Itinerary */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid var(--color-meadow)' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-meadow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Compass size={22} />
-                  </div>
-                  <span className="badge badge-primary">ITINERARY BUILDER</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Collaborative Day Timeline</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Build day-by-day schedules partitioned into Morning, Afternoon, Evening, and Night time slots. Tag activities by Dining, Transport, Lodging, and Adventures.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> Time slot & category organization
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> 1-Click link expenses & bookings to blocks
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> Auto-sync from reservation dates
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 2: Multi-Model Split & Side Quests */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid var(--color-river-blue)' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-river-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Receipt size={22} />
-                  </div>
-                  <span className="badge badge-sidequest">SIDE QUEST ENGINE</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Expenses & Side Quests</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Split costs equally, by percentages, custom amounts, or role multipliers. Launch <em>Side Quests</em> for sub-group adventures so only participating members pay.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-river-blue)" /> 4 flexible split calculation modes
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-river-blue)" /> Side Quests isolate uninvolved members
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-river-blue)" /> Multi-payer funding supported
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 3: Smart Receipt OCR */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid var(--color-sun-yellow)' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-sun-yellow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Camera size={22} />
-                  </div>
-                  <span className="badge badge-warning">SMART OCR</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Receipt OCR Bill Scanner</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Snap or upload any paper restaurant bill or grocery invoice. The OCR automatically parses item lines, tax, and tips, letting you assign individual dishes to travelers.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-sun-yellow)" /> Instant itemized line-item extraction
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-sun-yellow)" /> Item-by-item participant assignment
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-sun-yellow)" /> Automatic tax & service fee allocation
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 4: Centralized Bookings */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid #a78bfa' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: '#a78bfa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CalendarCheck size={22} />
-                  </div>
-                  <span className="badge badge-primary">RESERVATIONS HUB</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Centralized Bookings Hub</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Store all flight tickets, hotel & Airbnb stays, rental car reservations, train passes, and event tickets with confirmation codes, times, and member allocations.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#a78bfa" /> Flight, Stay, Car, Train, Activity types
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#a78bfa" /> Confirmation numbers & voucher storage
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#a78bfa" /> Real-time status (Confirmed/Pending)
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 5: Settlement & Debt Minimizer */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid var(--color-meadow)' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-meadow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Scale size={22} />
-                  </div>
-                  <span className="badge badge-success">DEBT MINIMIZER</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Settlement Matrix & Minimizer</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Greedy graph reduction simplifies messy webs of mutual IOUs into the absolute minimum number of direct transactions. Includes direct "Mark as Paid" UPI tracking.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> Collapses complex debts down to N-1
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> Pairwise debt grid and personal view
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> 1-Click Settle & UPI reference logs
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 6: Double-Entry Ledger */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid var(--color-river-blue)' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-river-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <BookOpen size={22} />
-                  </div>
-                  <span className="badge badge-primary">AUDIT TRAIL</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Double-Entry Ledger Audit</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  True accounting rigor. Every transaction generates debit and credit ledger rows. Full audit history with timestamps means every cent is verified and transparent.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-river-blue)" /> Debits equal Credits mathematical guarantee
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-river-blue)" /> Immutable timestamped audit trails
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-river-blue)" /> Filter by member, date, or category
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 7: Smart AI Recommendations */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid var(--color-sun-yellow)' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-sun-yellow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Sparkles size={22} />
-                  </div>
-                  <span className="badge badge-warning">AI DISCOVERY</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>AI Destination Insights</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Get smart destination recommendations for top sights, hidden eateries, adventure spots, and nightlife. Add any suggestion directly to your itinerary with 1 click.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-sun-yellow)" /> Curated dining, activities & hidden gems
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-sun-yellow)" /> 1-Click "Add to Itinerary" integration
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-sun-yellow)" /> Multi-city destination switcher
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 8: People & Early Departure Proration */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid #ec4899' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: '#ec4899', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Users size={22} />
-                  </div>
-                  <span className="badge badge-danger">PEOPLE & ROLES</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Early Departures & Multipliers</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Friend leaving 2 days early? TripLedger auto-freezes their allocation dates so they are only billed for the days they attended. Set Student (0.8x) and Sponsor (1.5x) tiers.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#ec4899" /> Automated departure date proration
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#ec4899" /> Tiered multipliers (Sponsor/Student/Custom)
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#ec4899" /> Host vs Participant permissions
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 9: Financial Health & Live Budget */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid var(--color-meadow)' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-meadow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <TrendingUp size={22} />
-                  </div>
-                  <span className="badge badge-success">BUDGET TRACKER</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Financial Health Dashboard</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Live overview of total group spend vs budget targets. Real-time per-member metrics: "Total You Paid", "Your Share Owed", and active Side Quest tallies with over-budget alerts.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> Real-time budget progress & warning banners
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> Personal balance cards & net positions
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="var(--color-meadow)" /> Destination weather & time widget
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Feature 10: Executive Reports & Exports */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '4px solid #fb923c' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--color-forest-ink)', color: '#fb923c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={22} />
-                  </div>
-                  <span className="badge badge-warning">REPORTS & EXPORTS</span>
-                </div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Executive Trip Reports</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5, marginBottom: '16px' }}>
-                  Comprehensive end-of-trip debrief reports. Breakdown by expense categories (Food, Lodging, Transport, Activities), individual financial statements, and 1-click PDF/CSV export.
-                </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-forest-ink)' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#fb923c" /> Category spend breakdown & visual charts
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#fb923c" /> Per-member itemized financial statement
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={14} color="#fb923c" /> Print-ready PDF & CSV ledger downloads
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* 3. INTERACTIVE FEATURE EXPLORER & LIVE MOCKUP PREVIEW */}
-      <section id="feature-explorer" style={{ padding: 'clamp(48px, 8vw, 96px) 0', backgroundColor: '#eae4d9', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
-
-          <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto clamp(28px, 5vw, 48px) auto' }}>
-            <span className="eyebrow-label">02 / INTERACTIVE PLATFORM EXPLORER</span>
-            <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', marginTop: '12px', color: 'var(--color-forest-ink)' }}>
-              SEE HOW EACH MODULE WORKS
-            </h2>
-            <p style={{ fontSize: '15px', color: '#555555', marginTop: '10px' }}>
-              Click through the modules below to preview how TripLedger streamlines every dimension of your group expedition.
-            </p>
-          </div>
-
-          {/* Module Selector Pills */}
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            justifyContent: 'center',
-            marginBottom: '32px'
-          }}>
-            {featureModules.map(m => {
-              const Icon = m.icon;
-              const isActive = activeFeatureTab === m.id;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setActiveFeatureTab(m.id)}
-                  style={{
+        {/* Active Step Master Card */}
+        {(() => {
+          const current = guideSteps[activeGuideStep];
+          const CurrentIcon = current.icon;
+          return (
+            <div style={{
+              backgroundColor: 'white',
+              border: '2px solid var(--color-forest-ink)',
+              borderRadius: '24px',
+              padding: 'clamp(20px, 4vw, 44px)',
+              boxShadow: '0 12px 40px rgba(18, 35, 21, 0.08)'
+            }}>
+              {/* Header Info */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', borderBottom: '1px solid var(--color-border)', paddingBottom: '20px', marginBottom: '24px' }}>
+                <div>
+                  <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 18px',
-                    borderRadius: '10px',
-                    border: isActive ? '1px solid var(--color-forest-ink)' : '1px solid var(--color-sage-border)',
-                    backgroundColor: isActive ? 'var(--color-forest-ink)' : 'var(--color-paper-cream)',
-                    color: isActive ? 'var(--color-meadow)' : 'var(--color-forest-ink)',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: isActive ? '0 4px 12px rgba(18,35,21,0.2)' : 'none'
+                    gap: '6px',
+                    backgroundColor: 'rgba(85, 221, 74, 0.15)',
+                    color: 'var(--color-forest-ink)',
+                    padding: '4px 12px',
+                    borderRadius: '9999px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    letterSpacing: '0.05em',
+                    marginBottom: '10px'
+                  }}>
+                    {current.badge}
+                  </div>
+                  <h3 style={{ fontSize: 'clamp(22px, 3.2vw, 34px)', color: 'var(--color-forest-ink)', marginBottom: '6px' }}>
+                    {current.title}
+                  </h3>
+                  <div style={{ fontSize: '14px', color: 'var(--color-driftwood)', fontWeight: 600 }}>
+                    {current.tagline}
+                  </div>
+                </div>
+
+                {/* Sub-Tabs Selector */}
+                <div style={{
+                  display: 'inline-flex',
+                  backgroundColor: 'var(--color-paper-cream)',
+                  padding: '4px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--color-border)',
+                  gap: '4px'
+                }}>
+                  {[
+                    { id: 'overview', label: '📖 Architecture' },
+                    { id: 'example', label: '💡 Real Example' },
+                    { id: 'pro-tips', label: '⭐ Organizer Tips' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setGuideDetailTab(tab.id)}
+                      style={{
+                        border: 'none',
+                        backgroundColor: guideDetailTab === tab.id ? 'var(--color-forest-ink)' : 'transparent',
+                        color: guideDetailTab === tab.id ? 'var(--color-paper-cream)' : 'var(--color-charcoal)',
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sub-Tab 1: Architecture & Capabilities */}
+              {guideDetailTab === 'overview' && (
+                <div>
+                  <p style={{ fontSize: '15px', lineHeight: 1.65, color: 'var(--color-charcoal)', marginBottom: '28px' }}>
+                    {current.overview}
+                  </p>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gap: '20px',
+                    marginBottom: '32px'
+                  }}>
+                    {current.deepDive.map((item, iIdx) => (
+                      <div
+                        key={iIdx}
+                        style={{
+                          backgroundColor: 'var(--color-paper-cream)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: '14px',
+                          padding: '18px 20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <CheckCircle2 size={16} color="var(--color-meadow)" style={{ flexShrink: 0 }} />
+                          <h4 style={{ fontSize: '15px', color: 'var(--color-forest-ink)' }}>
+                            {item.title}
+                          </h4>
+                        </div>
+                        <p style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--color-charcoal)', opacity: 0.9 }}>
+                          {item.desc}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-Tab 2: Real-World Scenario */}
+              {guideDetailTab === 'example' && (
+                <div style={{
+                  backgroundColor: 'var(--color-paper-cream)',
+                  border: '1.5px solid var(--color-forest-ink)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  marginBottom: '28px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <Sparkles size={18} color="var(--color-forest-ink)" />
+                    <h4 style={{ fontSize: '18px', color: 'var(--color-forest-ink)' }}>
+                      Real-World Scenario in Action
+                    </h4>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ padding: '12px 16px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-driftwood)', textTransform: 'uppercase' }}>1. The Challenge</span>
+                      <p style={{ fontSize: '14px', color: 'var(--color-charcoal)', marginTop: '4px', lineHeight: 1.5 }}>
+                        {current.example.scenario}
+                      </p>
+                    </div>
+
+                    <div style={{ padding: '12px 16px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-driftwood)', textTransform: 'uppercase' }}>2. The TripLedger Action</span>
+                      <p style={{ fontSize: '14px', color: 'var(--color-charcoal)', marginTop: '4px', lineHeight: 1.5 }}>
+                        {current.example.action}
+                      </p>
+                    </div>
+
+                    <div style={{ padding: '12px 16px', backgroundColor: 'rgba(85, 221, 74, 0.15)', borderRadius: '10px', border: '1px solid var(--color-meadow)' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-forest-ink)', textTransform: 'uppercase' }}>3. The Result</span>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-forest-ink)', marginTop: '4px', lineHeight: 1.5 }}>
+                        {current.example.outcome}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-Tab 3: Organizer Pro-Tips */}
+              {guideDetailTab === 'pro-tips' && (
+                <div style={{
+                  backgroundColor: 'var(--color-forest-ink)',
+                  color: 'var(--color-paper-cream)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  marginBottom: '28px',
+                  border: '1px solid var(--color-sage-border)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                    <ShieldCheck size={20} color="var(--color-meadow)" />
+                    <h4 style={{ fontSize: '18px', color: 'var(--color-paper-cream)' }}>
+                      Organizer Expert Tip
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#e5e7eb' }}>
+                    {current.proTip}
+                  </p>
+                </div>
+              )}
+
+              {/* Bottom Nav Bar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '20px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--color-driftwood)', fontWeight: 600 }}>
+                  Showing Stage {activeGuideStep + 1} of {guideSteps.length}
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {activeGuideStep > 0 && (
+                    <button
+                      onClick={() => {
+                        setActiveGuideStep(prev => prev - 1);
+                        setGuideDetailTab('overview');
+                      }}
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--color-border)',
+                        backgroundColor: 'white',
+                        color: 'var(--color-charcoal)',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ← Previous Stage
+                    </button>
+                  )}
+
+                  {activeGuideStep < guideSteps.length - 1 ? (
+                    <button
+                      onClick={() => {
+                        setActiveGuideStep(prev => prev + 1);
+                        setGuideDetailTab('overview');
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: 'var(--color-forest-ink)',
+                        color: 'var(--color-paper-cream)',
+                        border: 'none',
+                        padding: '10px 18px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Next Stage: {guideSteps[activeGuideStep + 1].shortTitle} <ChevronRight size={16} />
+                    </button>
+                  ) : (
+                    <Link
+                      to="/register"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: 'var(--color-meadow)',
+                        color: 'var(--color-forest-ink)',
+                        textDecoration: 'none',
+                        padding: '10px 18px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 700
+                      }}
+                    >
+                      CREATE YOUR TRIP NOW <ArrowRight size={16} />
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          );
+        })()}
+      </section>
+
+      {/* 3. CORE FEATURES GRID (CLEAN & MINIMAL) */}
+      <section style={{
+        backgroundColor: '#e9e3da',
+        paddingTop: 'clamp(40px, 6vw, 70px)',
+        paddingBottom: 'clamp(40px, 6vw, 70px)',
+        borderTop: '1px solid var(--color-border)',
+        borderBottom: '1px solid var(--color-border)'
+      }}>
+        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
+          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+            <h2 style={{ fontSize: 'clamp(26px, 4vw, 42px)', color: 'var(--color-forest-ink)', marginBottom: '8px' }}>
+              DESIGNED FOR REAL GROUP TRIPS
+            </h2>
+            <p style={{ fontSize: '15px', color: 'var(--color-charcoal)', opacity: 0.8 }}>
+              No messy spreadsheets. No lost receipts. Complete clarity from start to finish.
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '20px'
+          }}>
+            {features.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    backgroundColor: 'white',
+                    border: '1.5px solid var(--color-forest-ink)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '16px'
                   }}
                 >
-                  <Icon size={16} />
-                  {m.title}
-                </button>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        backgroundColor: 'var(--color-forest-ink)',
+                        color: 'var(--color-meadow)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Icon size={20} />
+                      </div>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        backgroundColor: 'var(--color-paper-cream)',
+                        color: 'var(--color-forest-ink)',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--color-border)'
+                      }}>
+                        {f.tag}
+                      </span>
+                    </div>
+                    <h3 style={{ fontSize: '18px', color: 'var(--color-forest-ink)', marginBottom: '8px' }}>
+                      {f.title}
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'var(--color-charcoal)', lineHeight: 1.5, opacity: 0.85 }}>
+                      {f.description}
+                    </p>
+                  </div>
+                </div>
               );
             })}
           </div>
-
-          {/* Active Module Interactive Display Card */}
-          <div className="card-cream" style={{
-            backgroundColor: '#ffffff',
-            border: '2px solid var(--color-sage-border)',
-            padding: 'clamp(24px, 4vw, 40px)',
-            boxShadow: '0 16px 48px rgba(18,35,21,0.1)'
-          }}>
-            <div className="responsive-grid-2" style={{ alignItems: 'center', gap: '36px' }}>
-              
-              {/* Left Column: Details */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                  <span className="sticker-badge" style={{ transform: 'none' }}>
-                    {currentFeature.badge}
-                  </span>
-                  <span style={{ fontSize: '12px', color: 'var(--color-moss-gray)', fontWeight: 700 }}>
-                    MODULE 0{featureModules.findIndex(m => m.id === currentFeature.id) + 1} OF 08
-                  </span>
-                </div>
-
-                <h3 style={{ fontSize: 'clamp(24px, 4vw, 38px)', color: 'var(--color-forest-ink)', marginBottom: '8px' }}>
-                  {currentFeature.title}
-                </h3>
-                <h4 style={{ fontSize: '16px', color: '#4b5563', fontWeight: 600, marginBottom: '18px', fontStyle: 'italic' }}>
-                  "{currentFeature.tagline}"
-                </h4>
-                <p style={{ fontSize: '15px', color: '#374151', lineHeight: 1.6, marginBottom: '24px' }}>
-                  {currentFeature.description}
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px' }}>
-                  {currentFeature.highlights.map((h, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: 'var(--color-forest-ink)', fontWeight: 500 }}>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'rgba(85,221,74,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
-                        <Check size={13} color="var(--color-forest-ink)" />
-                      </div>
-                      <span>{h}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link to="/register" className="btn-primary">
-                    TRY {currentFeature.title.toUpperCase()} <ArrowRight size={16} />
-                  </Link>
-                  <Link to="/login" className="btn-secondary">
-                    SIGN IN TO WORKSPACE
-                  </Link>
-                </div>
-              </div>
-
-              {/* Right Column: Live Mockup Card */}
-              <div style={{
-                backgroundColor: 'var(--color-forest-ink)',
-                borderRadius: '16px',
-                padding: '24px',
-                color: 'var(--color-paper-cream)',
-                border: '1px solid var(--color-sage-border)',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.3)'
-              }}>
-                {/* Mockup Top Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.12)', paddingBottom: '14px', marginBottom: '18px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                    <span style={{ fontSize: '12px', color: 'var(--color-moss-gray)', marginLeft: '8px', fontFamily: 'var(--font-mono)' }}>
-                      trip://workspace/{currentFeature.id}
-                    </span>
-                  </div>
-                  <span className="badge badge-success" style={{ fontSize: '10px' }}>LIVE PREVIEW</span>
-                </div>
-
-                {/* Tab Specific Live Previews */}
-                {activeFeatureTab === 'itinerary' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-meadow)' }}>DAY 02 • SATURDAY, OCT 18</span>
-                      <span style={{ fontSize: '11px', color: 'var(--color-moss-gray)' }}>3 Planned Blocks • ₹3,800 Total</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {/* Block 1 */}
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px', borderLeft: '3px solid #ea580c' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-moss-gray)', marginBottom: '4px' }}>
-                          <span>🌅 MORNING (08:30 - 10:30)</span>
-                          <span style={{ color: '#ea580c', fontWeight: 700 }}>🍽️ DINING</span>
-                        </div>
-                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#ffffff' }}>Artisan Bakery & Cafe Breakfast</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '6px', color: '#d1d5db' }}>
-                          <span>📍 Old Town Square</span>
-                          <span style={{ color: 'var(--color-meadow)', fontWeight: 700 }}>₹1,400 (Linked to Expense #12)</span>
-                        </div>
-                      </div>
-
-                      {/* Block 2 */}
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px', borderLeft: '3px solid #16a34a' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-moss-gray)', marginBottom: '4px' }}>
-                          <span>☀️ AFTERNOON (13:00 - 16:30)</span>
-                          <span style={{ color: '#16a34a', fontWeight: 700 }}>🏄 ACTIVITY</span>
-                        </div>
-                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#ffffff' }}>River Rafting & Cliff Jump Expedition</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '6px', color: '#d1d5db' }}>
-                          <span>📍 Rapids Sector 4</span>
-                          <span style={{ color: '#a78bfa', fontWeight: 700 }}>🎫 Booking #BK-902 Attached</span>
-                        </div>
-                      </div>
-
-                      {/* Block 3 */}
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px', borderLeft: '3px solid #7c3aed' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-moss-gray)', marginBottom: '4px' }}>
-                          <span>🌇 EVENING (18:00 - 20:00)</span>
-                          <span style={{ color: '#7c3aed', fontWeight: 700 }}>🚗 TRANSPORT</span>
-                        </div>
-                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#ffffff' }}>Sunset Mountain Shuttle to Villa</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '6px', color: '#d1d5db' }}>
-                          <span>📍 Hilltop Lookouts</span>
-                          <span style={{ color: 'var(--color-river-blue)', fontWeight: 700 }}>Shared among 5 members</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeFeatureTab === 'expenses' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-river-blue)' }}>ACTIVE GROUP EXPENSES</span>
-                      <span className="badge badge-sidequest" style={{ fontSize: '10px' }}>1 SIDE QUEST ACTIVE</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {/* Standard Shared */}
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '14px' }}>Villa Rental (3 Nights)</span>
-                          <span style={{ color: 'var(--color-meadow)', fontWeight: 800, fontSize: '15px' }}>₹24,000</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-moss-gray)', marginTop: '4px' }}>
-                          <span>Paid by Alex • Split: Equal (5 members)</span>
-                          <span style={{ color: '#93c5fd' }}>₹4,800/person</span>
-                        </div>
-                      </div>
-
-                      {/* Side Quest Item */}
-                      <div style={{ backgroundColor: 'rgba(126,34,206,0.18)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(216,180,254,0.3)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span className="badge badge-sidequest" style={{ fontSize: '9px', padding: '2px 6px' }}>SIDE QUEST</span>
-                            <span style={{ fontWeight: 700, fontSize: '14px' }}>Scuba Diving Gear & Boat</span>
-                          </div>
-                          <span style={{ color: '#d8b4fe', fontWeight: 800, fontSize: '15px' }}>₹6,000</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#e9d5ff', marginTop: '4px' }}>
-                          <span>Only Alex, Maya & Carter (3/5 members)</span>
-                          <span style={{ fontWeight: 700 }}>₹2,000/adventurer</span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#c084fc', marginTop: '4px', fontStyle: 'italic' }}>
-                          🔒 Uninvolved travelers excluded automatically
-                        </div>
-                      </div>
-
-                      {/* Tiered Multiplier Split */}
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '14px' }}>Group Banquet Dinner</span>
-                          <span style={{ color: 'var(--color-sun-yellow)', fontWeight: 800, fontSize: '15px' }}>₹7,500</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-moss-gray)', marginTop: '4px' }}>
-                          <span>Tiered: Sponsor (1.5x), Student (0.8x)</span>
-                          <span style={{ color: 'var(--color-paper-cream)' }}>₹1,132 to ₹2,122</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeFeatureTab === 'ocr' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-sun-yellow)' }}>OCR PARSED RECEIPT: CAFE NIRVANA</span>
-                      <span className="badge badge-success" style={{ fontSize: '10px' }}>✓ 100% CONFIDENCE</span>
-                    </div>
-
-                    <div style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px dashed rgba(255,255,255,0.15)', paddingBottom: '6px', marginBottom: '6px' }}>
-                        <span>2x Wood-Fired Margherita Pizza</span>
-                        <span style={{ fontWeight: 700 }}>₹900.00 → (Alex, Maya)</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px dashed rgba(255,255,255,0.15)', paddingBottom: '6px', marginBottom: '6px' }}>
-                        <span>1x Truffle Pasta & Garlic Bread</span>
-                        <span style={{ fontWeight: 700 }}>₹650.00 → (Carter)</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px dashed rgba(255,255,255,0.15)', paddingBottom: '6px', marginBottom: '6px' }}>
-                        <span>4x Specialty Cold Brews</span>
-                        <span style={{ fontWeight: 700 }}>₹800.00 → (All Members)</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-moss-gray)' }}>
-                        <span>Taxes & 10% Service Charge</span>
-                        <span>₹235.00 → (Proportional)</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', backgroundColor: 'rgba(85,221,74,0.15)', borderRadius: '8px', border: '1px solid rgba(85,221,74,0.3)' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-meadow)' }}>Total Bill: ₹2,585.00</span>
-                      <span style={{ fontSize: '11px', color: '#ffffff' }}>✓ Injected to Ledger with Image Proof</span>
-                    </div>
-                  </div>
-                )}
-
-                {activeFeatureTab === 'bookings' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: '#a78bfa' }}>CENTRALIZED RESERVATIONS</span>
-                      <span style={{ fontSize: '11px', color: 'var(--color-moss-gray)' }}>4 Active Bookings</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {/* Flight */}
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '13px' }}>✈️ Indigo Flight 6E-204 (DEL → KUU)</span>
-                          <span className="badge badge-success" style={{ fontSize: '9px' }}>CONFIRMED</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-moss-gray)', marginTop: '4px' }}>
-                          <span>PNR: <strong>6EQK92</strong> • Departs: 07:15 AM</span>
-                          <span style={{ color: 'var(--color-paper-cream)' }}>₹18,200 (4 Pax)</span>
-                        </div>
-                      </div>
-
-                      {/* Hotel */}
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '13px' }}>🏨 Cedar Ridge Alpine Chalet</span>
-                          <span className="badge badge-success" style={{ fontSize: '9px' }}>CONFIRMED</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-moss-gray)', marginTop: '4px' }}>
-                          <span>Conf: <strong>#CR-88910</strong> • Check-in: 02:00 PM</span>
-                          <span style={{ color: 'var(--color-paper-cream)' }}>₹32,000 (3 Nights)</span>
-                        </div>
-                      </div>
-
-                      {/* Car Rental */}
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '13px' }}>🚗 4x4 Mountain SUV Rental</span>
-                          <span className="badge badge-primary" style={{ fontSize: '9px' }}>RESERVED</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-moss-gray)', marginTop: '4px' }}>
-                          <span>Pickup: Airport Counter • Self Drive</span>
-                          <span style={{ color: 'var(--color-paper-cream)' }}>₹8,400</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeFeatureTab === 'settlement' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-meadow)' }}>DEBT MINIMIZER: 10 DEBTS → 2 PAYMENTS</span>
-                      <span className="badge badge-success" style={{ fontSize: '10px' }}>OPTIMIZED</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ backgroundColor: 'rgba(85,221,74,0.12)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(85,221,74,0.25)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '14px' }}>Carter pays Alex</span>
-                          <span style={{ color: 'var(--color-meadow)', fontWeight: 800, fontSize: '16px' }}>₹3,450</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#d1d5db', marginTop: '6px' }}>
-                          <span>UPI: <code>alex@okhdfc</code></span>
-                          <span style={{ color: '#86efac', fontWeight: 700 }}>✓ Settled & Marked Paid</span>
-                        </div>
-                      </div>
-
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '14px' }}>Maya pays Alex</span>
-                          <span style={{ color: 'var(--color-river-blue)', fontWeight: 800, fontSize: '16px' }}>₹1,820</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#d1d5db', marginTop: '6px' }}>
-                          <span>UPI: <code>alex@okhdfc</code></span>
-                          <span style={{ color: 'var(--color-sun-yellow)', fontWeight: 700 }}>⏳ Pending UPI Transfer</span>
-                        </div>
-                      </div>
-
-                      <div style={{ fontSize: '11px', color: 'var(--color-moss-gray)', textAlign: 'center', paddingTop: '6px' }}>
-                        ⚡ 8 intermediate circular debts removed automatically
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeFeatureTab === 'ledger' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-river-blue)' }}>DOUBLE-ENTRY AUDIT LOG</span>
-                      <span className="badge badge-success" style={{ fontSize: '10px' }}>Σ DEBITS = Σ CREDITS</span>
-                    </div>
-
-                    <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', padding: '10px', borderRadius: '8px' }}>
-                        <div style={{ color: 'var(--color-moss-gray)' }}>TX-89104 | 2026-10-18 14:22:01 | Villa Payment</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#86efac', marginTop: '4px' }}>
-                          <span>CR: Asset/Cash (Alex)</span>
-                          <span>₹24,000.00</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#93c5fd' }}>
-                          <span>DR: Expense/Lodging (5 Members)</span>
-                          <span>₹24,000.00</span>
-                        </div>
-                      </div>
-
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', padding: '10px', borderRadius: '8px' }}>
-                        <div style={{ color: 'var(--color-moss-gray)' }}>TX-89105 | 2026-10-18 19:40:15 | Scuba Side Quest</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#86efac', marginTop: '4px' }}>
-                          <span>CR: Asset/Cash (Maya)</span>
-                          <span>₹6,000.00</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#d8b4fe' }}>
-                          <span>DR: SideQuest/Activity (3 Members)</span>
-                          <span>₹6,000.00</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeFeatureTab === 'recommendations' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-sun-yellow)' }}>AI CURATED PLACES FOR MANALI</span>
-                      <span className="badge badge-warning" style={{ fontSize: '10px' }}>AI RECOMMENDATIONS</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <span style={{ fontWeight: 700, fontSize: '13px' }}>🌲 Jogini Waterfall Sunrise Trek</span>
-                            <div style={{ fontSize: '11px', color: 'var(--color-moss-gray)', marginTop: '2px' }}>Vashisht Village • 2.5 hrs • Moderate Trail</div>
-                          </div>
-                          <span className="badge badge-success" style={{ fontSize: '9px' }}>+ ADD TO ITINERARY</span>
-                        </div>
-                      </div>
-
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <span style={{ fontWeight: 700, fontSize: '13px' }}>☕ Drifter's Cafe & Live Acoustic</span>
-                            <div style={{ fontSize: '11px', color: 'var(--color-moss-gray)', marginTop: '2px' }}>Old Manali • Wood-fired Pizzas & Local Cider</div>
-                          </div>
-                          <span className="badge badge-success" style={{ fontSize: '9px' }}>+ ADD TO ITINERARY</span>
-                        </div>
-                      </div>
-
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <span style={{ fontWeight: 700, fontSize: '13px' }}>🪂 Solang Valley Tandem Paragliding</span>
-                            <div style={{ fontSize: '11px', color: 'var(--color-moss-gray)', marginTop: '2px' }}>Solang Valley • High altitude flights with GoPro</div>
-                          </div>
-                          <span className="badge badge-success" style={{ fontSize: '9px' }}>+ ADD TO ITINERARY</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeFeatureTab === 'reports' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: '#fb923c' }}>FINANCIAL DEBRIEF REPORT</span>
-                      <span className="badge badge-warning" style={{ fontSize: '10px' }}>EXPORT READY</span>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', padding: '10px', borderRadius: '8px' }}>
-                        <div style={{ fontSize: '10px', color: 'var(--color-moss-gray)' }}>TOTAL SPEND</div>
-                        <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-paper-cream)' }}>₹62,400</div>
-                      </div>
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', padding: '10px', borderRadius: '8px' }}>
-                        <div style={{ fontSize: '10px', color: 'var(--color-moss-gray)' }}>BUDGET UTILIZATION</div>
-                        <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-meadow)' }}>89.1% (Safe)</div>
-                      </div>
-                    </div>
-
-                    <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Lodging (Villa & Hotels)</span>
-                        <span style={{ fontWeight: 700 }}>₹32,000 (51.3%)</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Food & Group Dinners</span>
-                        <span style={{ fontWeight: 700 }}>₹14,200 (22.7%)</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Transport & Car Rentals</span>
-                        <span style={{ fontWeight: 700 }}>₹9,800 (15.7%)</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Activities & Side Quests</span>
-                        <span style={{ fontWeight: 700 }}>₹6,400 (10.3%)</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                      <button className="btn-secondary" style={{ flex: 1, padding: '6px', fontSize: '11px', justifyContent: 'center' }}>
-                        📄 Download PDF
-                      </button>
-                      <button className="btn-secondary" style={{ flex: 1, padding: '6px', fontSize: '11px', justifyContent: 'center' }}>
-                        📊 Export CSV
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-
-            </div>
-          </div>
-
         </div>
       </section>
 
+      {/* 4. INTERACTIVE MINI SPLIT CALCULATOR */}
+      <section style={{
+        paddingTop: 'clamp(40px, 6vw, 70px)',
+        paddingBottom: 'clamp(40px, 6vw, 70px)',
+        maxWidth: 'var(--page-max-width)',
+        margin: '0 auto',
+        paddingLeft: 'clamp(16px, 4vw, 24px)',
+        paddingRight: 'clamp(16px, 4vw, 24px)'
+      }}>
+        <div style={{
+          backgroundColor: 'var(--color-forest-ink)',
+          color: 'var(--color-paper-cream)',
+          borderRadius: '20px',
+          padding: 'clamp(24px, 4vw, 44px)',
+          border: '2px solid var(--color-sage-border)'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--color-meadow)', fontWeight: 700, letterSpacing: '0.08em' }}>
+              ✦ INSTANT DEBT MINIMIZER DEMO
+            </span>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 38px)', color: 'var(--color-paper-cream)', marginTop: '6px', marginBottom: '8px' }}>
+              SEE HOW THE MATH SIMPLIFIES
+            </h2>
+            <p style={{ fontSize: '14px', color: '#c9d1c8', maxWidth: '500px', margin: '0 auto' }}>
+              Adjust travelers and spend below to see our graph solver eliminate awkward money transfers.
+            </p>
+          </div>
 
-      {/* 4. INTERACTIVE LIVE SPLIT & DEBT CALCULATOR */}
-      <section id="calculator" style={{ padding: 'clamp(48px, 8vw, 96px) 0', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
-
-          <div className="responsive-grid-2" style={{ alignItems: 'center', gap: '40px' }}>
-            <div>
-              <span className="eyebrow-label">03 / REAL FINANCIAL MATHEMATICS</span>
-              <h2 style={{ fontSize: 'clamp(30px, 5vw, 60px)', margin: '14px 0 20px 0', color: 'var(--color-forest-ink)' }}>
-                THE POSTER LEDGER PRINCIPLE
-              </h2>
-              <p style={{ fontSize: '16px', lineHeight: 1.5, color: 'var(--color-charcoal)', marginBottom: '24px' }}>
-                Standard expense apps use simple flat averages that fail when someone leaves early, when students get discount shares, or when sponsors cover extra. <strong>TripLedger</strong> uses a double-entry debit/credit ledger structure that guarantees every cent is accounted for.
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{ padding: '10px', backgroundColor: 'rgba(85,221,74,0.15)', borderRadius: '10px', color: 'var(--color-forest-ink)', flexShrink: 0 }}>
-                    <Scale size={22} color="var(--color-forest-ink)" />
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '16px', marginBottom: '4px' }}>Automated Settlement Minimization</h4>
-                    <p style={{ fontSize: '13px', color: '#555555' }}>Reduces {rawPairwiseTransactions} complex group transactions down to just {minimizedTransactions} direct payments with zero circular debt.</p>
-                  </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '28px', alignItems: 'center' }}>
+            
+            {/* Sliders */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>
+                  <span>Number of Travelers</span>
+                  <span style={{ color: 'var(--color-meadow)', fontWeight: 800 }}>{numTravelers} Friends</span>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{ padding: '10px', backgroundColor: 'rgba(115,211,235,0.2)', borderRadius: '10px', flexShrink: 0 }}>
-                    <Sparkles size={22} color="var(--color-forest-ink)" />
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '16px', marginBottom: '4px' }}>Multi-Tier Multipliers</h4>
-                    <p style={{ fontSize: '13px', color: '#555555' }}>Customize financial weights per person: Sponsor (1.5x), Standard (1.0x), and Student (0.8x).</p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{ padding: '10px', backgroundColor: 'rgba(255,237,82,0.2)', borderRadius: '10px', flexShrink: 0 }}>
-                    <Camera size={22} color="var(--color-forest-ink)" />
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '16px', marginBottom: '4px' }}>Camera & Receipt OCR Line Extraction</h4>
-                    <p style={{ fontSize: '13px', color: '#555555' }}>Extract dishes, taxes, and service charges automatically from physical paper receipts.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Live Interactive Calculator Sandbox */}
-            <div className="card-cream" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-14px', right: '20px' }}>
-                <span className="sticker-badge">INTERACTIVE CALCULATOR</span>
+                <input
+                  type="range"
+                  min="2"
+                  max="12"
+                  value={numTravelers}
+                  onChange={(e) => setNumTravelers(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--color-meadow)', cursor: 'pointer' }}
+                />
               </div>
 
-              <h3 style={{ fontSize: '22px', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Calculator size={20} color="var(--color-meadow)" /> Live Cost Engine Preview
-              </h3>
-
-              {/* Slider 1: Expenses */}
-              <div style={{ marginBottom: '18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
-                  <span>Total Group Expenses:</span>
-                  <span style={{ color: 'var(--color-forest-ink)', fontWeight: 800 }}>₹{totalExpenses}</span>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>
+                  <span>Total Group Expenses</span>
+                  <span style={{ color: 'var(--color-meadow)', fontWeight: 800 }}>₹{totalExpenses.toLocaleString()}</span>
                 </div>
                 <input
                   type="range"
@@ -1196,338 +874,193 @@ export const LandingPage = () => {
                 />
               </div>
 
-              {/* Slider 2: Travelers */}
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
-                  <span>Group Travelers:</span>
-                  <span style={{ color: 'var(--color-forest-ink)', fontWeight: 800 }}>{numTravelers} People</span>
-                </div>
-                <input
-                  type="range"
-                  min="2"
-                  max="12"
-                  step="1"
-                  value={numTravelers}
-                  onChange={(e) => setNumTravelers(Number(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--color-meadow)', cursor: 'pointer' }}
-                />
-              </div>
-
-              {/* Toggles: Student & Sponsor Tiers */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#e8e2d7', padding: '10px 14px', borderRadius: '10px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600 }}>Apply Student Tier (0.8x Multiplier)</span>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
-                    checked={studentDiscount}
-                    onChange={(e) => setStudentDiscount(e.target.checked)}
-                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-meadow)', cursor: 'pointer' }}
+                    checked={hasStudent}
+                    onChange={(e) => setHasStudent(e.target.checked)}
+                    style={{ accentColor: 'var(--color-meadow)' }}
                   />
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#e8e2d7', padding: '10px 14px', borderRadius: '10px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600 }}>Include Sponsor Tier (1.5x Multiplier)</span>
+                  1 Student (0.8x discount)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={hasSponsor}
                     onChange={(e) => setHasSponsor(e.target.checked)}
-                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-meadow)', cursor: 'pointer' }}
+                    style={{ accentColor: 'var(--color-meadow)' }}
                   />
-                </div>
-              </div>
-
-              {/* Output Display */}
-              <div style={{ backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-paper-cream)', padding: '18px', borderRadius: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-sage-border)', paddingBottom: '8px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--color-moss-gray)' }}>Standard Traveler Share:</span>
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-paper-cream)' }}>₹{calculatedStandardShare}</span>
-                </div>
-                {studentDiscount && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-sage-border)', paddingBottom: '8px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--color-meadow)' }}>Student Tier (20% Off):</span>
-                    <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-meadow)' }}>₹{calculatedStudentShare}</span>
-                  </div>
-                )}
-                {hasSponsor && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-sage-border)', paddingBottom: '8px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--color-sun-yellow)' }}>Sponsor Share (1.5x):</span>
-                    <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-sun-yellow)' }}>₹{calculatedSponsorShare}</span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-moss-gray)' }}>Optimized Settlement:</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-river-blue)' }}>
-                    {minimizedTransactions} payments max (saved {rawPairwiseTransactions - minimizedTransactions} transfers)
-                  </span>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* 5. COMPARISON MATRIX (TRIPLEDGER VS OTHERS) */}
-      <section style={{ padding: 'clamp(48px, 8vw, 96px) 0', backgroundColor: '#eae4d9', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
-          
-          <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto clamp(32px, 6vw, 56px) auto' }}>
-            <span className="eyebrow-label">04 / WHY WE ARE DIFFERENT</span>
-            <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', marginTop: '12px', color: 'var(--color-forest-ink)' }}>
-              BUILT FOR REAL EXPEDITIONS
-            </h2>
-            <p style={{ fontSize: '15px', color: '#555555', marginTop: '10px' }}>
-              Traditional split apps only do basic division. TripLedger connects scheduling, bookings, sub-splits, and accounting rigor into one cohesive platform.
-            </p>
-          </div>
-
-          {/* Comparison Table */}
-          <div className="table-responsive-wrapper" style={{ border: '2px solid var(--color-sage-border)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ backgroundColor: 'var(--color-forest-ink)', color: 'var(--color-paper-cream)' }}>
-                  <th style={{ padding: '16px 20px', fontWeight: 800 }}>Platform Capability</th>
-                  <th style={{ padding: '16px 20px', fontWeight: 800, color: 'var(--color-meadow)', backgroundColor: 'rgba(85,221,74,0.12)' }}>TripLedger (Poster OS)</th>
-                  <th style={{ padding: '16px 20px', fontWeight: 600, color: '#d1d5db' }}>Generic Split Apps</th>
-                  <th style={{ padding: '16px 20px', fontWeight: 600, color: '#d1d5db' }}>Excel / Google Sheets</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style={{ borderBottom: '1px solid var(--color-frost)' }}>
-                  <td style={{ padding: '14px 20px', fontWeight: 600 }}>Day-by-Day Time-Slotted Itinerary</td>
-                  <td style={{ padding: '14px 20px', fontWeight: 700, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.06)' }}>✓ Integrated with 1-click expenses</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>✗ No itinerary feature</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>Manual typing only</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid var(--color-frost)' }}>
-                  <td style={{ padding: '14px 20px', fontWeight: 600 }}>Isolated Side Quest Sub-Splits</td>
-                  <td style={{ padding: '14px 20px', fontWeight: 700, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.06)' }}>✓ Sub-group isolation auto-calculated</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>Manual unchecking each time</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>Complex formulas break</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid var(--color-frost)' }}>
-                  <td style={{ padding: '14px 20px', fontWeight: 600 }}>Smart Receipt OCR Bill Parsing</td>
-                  <td style={{ padding: '14px 20px', fontWeight: 700, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.06)' }}>✓ Itemized dish assignment & tax math</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>Paid paywall or basic total only</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>✗ None</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid var(--color-frost)' }}>
-                  <td style={{ padding: '14px 20px', fontWeight: 600 }}>Centralized Bookings Hub (Flights/Stays)</td>
-                  <td style={{ padding: '14px 20px', fontWeight: 700, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.06)' }}>✓ Vouchers, PNRs, check-in times stored</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>✗ Not available</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>Messy links table</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid var(--color-frost)' }}>
-                  <td style={{ padding: '14px 20px', fontWeight: 600 }}>Early Departure Date Proration</td>
-                  <td style={{ padding: '14px 20px', fontWeight: 700, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.06)' }}>✓ Auto-freezes expense allocation</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>✗ Impossible without manual math</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>Manual date logic</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid var(--color-frost)' }}>
-                  <td style={{ padding: '14px 20px', fontWeight: 600 }}>Double-Entry Ledger Accounting</td>
-                  <td style={{ padding: '14px 20px', fontWeight: 700, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.06)' }}>✓ Strict balance sheet + immutable audit</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>Single-entry naive ledger</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>Requires CPA skills</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '14px 20px', fontWeight: 600 }}>AI Destination Insights & 1-Click Add</td>
-                  <td style={{ padding: '14px 20px', fontWeight: 700, color: 'var(--color-forest-ink)', backgroundColor: 'rgba(85,221,74,0.06)' }}>✓ Curated spots added directly to schedule</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>✗ None</td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af' }}>✗ None</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* 6. HOW IT WORKS: END-TO-END FLOW */}
-      <section style={{ padding: 'clamp(48px, 8vw, 96px) 0', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
-          
-          <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto clamp(36px, 6vw, 64px) auto' }}>
-            <span className="eyebrow-label">05 / SIMPLE 4-STEP LIFECYCLE</span>
-            <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', marginTop: '12px', color: 'var(--color-forest-ink)' }}>
-              HOW TRIPLEDGER RUNS YOUR TRIP
-            </h2>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: '20px' }}>
-            
-            {/* Step 1 */}
-            <div className="card-cream" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-14px', left: '20px' }}>
-                <span className="sticker-badge">STEP 01</span>
-              </div>
-              <div style={{ marginTop: '10px' }}>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Create & Invite</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5 }}>
-                  Set your trip name, dates, base currency (INR, USD, EUR), and group budget. Share the 6-character invite code so friends join in seconds.
-                </p>
+                  1 Sponsor (1.5x share)
+                </label>
               </div>
             </div>
 
-            {/* Step 2 */}
-            <div className="card-cream" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-14px', left: '20px' }}>
-                <span className="sticker-badge-navy">STEP 02</span>
+            {/* Results Display */}
+            <div style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '16px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px' }}>
+                <span style={{ fontSize: '13px', color: '#c9d1c8' }}>Standard Share / person</span>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-meadow)' }}>
+                  ₹{Math.round(baseShare).toLocaleString()}
+                </span>
               </div>
-              <div style={{ marginTop: '10px' }}>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Plan & Book</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5 }}>
-                  Build your time-slotted itinerary, store flight/hotel booking confirmation codes, and browse AI suggestions for local dining and hidden gems.
-                </p>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: '#c9d1c8' }}>Unoptimized Pairwise Debts</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#f87171' }}>
+                  {rawTxns} transfers
+                </span>
               </div>
-            </div>
 
-            {/* Step 3 */}
-            <div className="card-cream" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-14px', left: '20px' }}>
-                <span className="sticker-badge">STEP 03</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: '#c9d1c8' }}>TripLedger Graph Settle</span>
+                <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-meadow)' }}>
+                  Only {minimizedTxns} transfers!
+                </span>
               </div>
-              <div style={{ marginTop: '10px' }}>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Track & OCR Scan</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5 }}>
-                  Snap receipts on the go to auto-allocate dishes. Tag separate mini-adventures as Side Quests to keep uninvolved members completely unbilled.
-                </p>
-              </div>
-            </div>
 
-            {/* Step 4 */}
-            <div className="card-cream" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-14px', left: '20px' }}>
-                <span className="sticker-badge-navy">STEP 04</span>
-              </div>
-              <div style={{ marginTop: '10px' }}>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Settle & Export</h3>
-                <p style={{ fontSize: '14px', color: '#555555', lineHeight: 1.5 }}>
-                  The debt minimizer reduces complex IOUs to minimum UPI transfers. Mark settlements as paid and download full PDF & CSV reports.
-                </p>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* 7. FIELD REPORT TESTIMONIAL */}
-      <section style={{ padding: 'clamp(48px, 8vw, 96px) 0', backgroundColor: '#eae4d9', borderBottom: '1px solid var(--color-sage-border)' }}>
-        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
-
-          <div className="responsive-grid-2" style={{ alignItems: 'center', gap: 'clamp(28px, 5vw, 48px)' }}>
-            <div style={{ position: 'relative' }}>
               <div style={{
-                borderRadius: '20px',
-                overflow: 'hidden',
-                border: '2px solid var(--color-sage-border)',
-                boxShadow: 'var(--shadow-preview)'
+                backgroundColor: 'rgba(85, 221, 74, 0.12)',
+                border: '1px solid rgba(85, 221, 74, 0.3)',
+                padding: '10px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                color: 'var(--color-meadow)',
+                textAlign: 'center',
+                fontWeight: 600
               }}>
-                <img
-                  src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"
-                  alt="Mountain Traveler Expedition"
-                  style={{ width: '100%', height: 'clamp(240px, 45vw, 420px)', objectFit: 'cover', display: 'block' }}
-                />
-              </div>
-              <div style={{ position: 'absolute', bottom: '-14px', left: 'clamp(12px, 3vw, 24px)' }}>
-                <span className="sticker-badge">VERIFIED TRAIL TESTED</span>
+                ✨ Eliminated {rawTxns - minimizedTxns} redundant transactions
               </div>
             </div>
 
-            <div>
-              <span className="eyebrow-label">06 / VERIFIED EXPEDITION LOG</span>
-              <h2 style={{ fontSize: 'clamp(26px, 4vw, 52px)', margin: '12px 0 18px 0', color: 'var(--color-forest-ink)' }}>
-                "WE SAVED 5 HOURS OF MATH AFTER OUR 10-DAY ROADTRIP."
-              </h2>
-              <blockquote style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'var(--color-charcoal)', lineHeight: 1.5, marginBottom: '20px', fontStyle: 'italic' }}>
-                "We had 8 people sharing Airbnb villas, car rentals, and mountain guide fees. Someone left on day 6, and 3 people did a separate paragliding side quest. TripLedger calculated every single prorated debt in seconds with receipt OCR. Nobody complained, and settlements were completed in 3 UPI transfers by midnight."
-              </blockquote>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--color-forest-ink)',
-                  color: 'var(--color-meadow)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  flexShrink: 0
-                }}>
-                  CW
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-forest-ink)', fontSize: '14px' }}>
-                    CARTER & EXPEDITION CREW
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-moss-gray)' }}>Cascade Range Trail Trip • Summer 2026</div>
-                </div>
-              </div>
-            </div>
           </div>
-
         </div>
       </section>
 
-
-      {/* 8. FINAL CALL TO ACTION BANNER */}
+      {/* 5. DEEP DIVE FAQS SECTION */}
       <section style={{
+        paddingTop: 'clamp(40px, 6vw, 70px)',
+        paddingBottom: 'clamp(40px, 6vw, 70px)',
+        maxWidth: 'var(--page-max-width)',
+        margin: '0 auto',
+        paddingLeft: 'clamp(16px, 4vw, 24px)',
+        paddingRight: 'clamp(16px, 4vw, 24px)'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <h2 style={{ fontSize: 'clamp(26px, 4vw, 42px)', color: 'var(--color-forest-ink)', marginBottom: '8px' }}>
+            FREQUENTLY ASKED QUESTIONS
+          </h2>
+          <p style={{ fontSize: '15px', color: 'var(--color-charcoal)', opacity: 0.8 }}>
+            Everything you need to know about TripLedger's financial architecture and trip workflows.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '800px', margin: '0 auto' }}>
+          {faqs.map((faq, fIdx) => {
+            const isOpen = openFaq === fIdx;
+            return (
+              <div
+                key={fIdx}
+                style={{
+                  backgroundColor: 'white',
+                  border: '1.5px solid var(--color-forest-ink)',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <button
+                  onClick={() => setOpenFaq(isOpen ? null : fIdx)}
+                  style={{
+                    width: '100%',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    color: 'var(--color-forest-ink)',
+                    gap: '12px'
+                  }}
+                >
+                  <span>{faq.q}</span>
+                  <span style={{ fontSize: '18px', fontWeight: 800, transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s ease' }}>
+                    +
+                  </span>
+                </button>
+                {isOpen && (
+                  <div style={{ padding: '0 20px 18px 20px', fontSize: '14px', lineHeight: 1.6, color: 'var(--color-charcoal)', borderTop: '1px solid var(--color-border)', paddingTop: '12px' }}>
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 6. CALL TO ACTION FOOTER */}
+      <footer style={{
         backgroundColor: 'var(--color-forest-ink)',
         color: 'var(--color-paper-cream)',
-        padding: 'clamp(48px, 8vw, 96px) 0',
-        textAlign: 'center',
-        position: 'relative'
+        paddingTop: '40px',
+        paddingBottom: '30px',
+        borderTop: '2px solid var(--color-sage-border)',
+        textAlign: 'center'
       }}>
-        <div style={{ maxWidth: '840px', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
-          <span className="eyebrow-label">READY FOR YOUR NEXT EXPEDITION</span>
-          <h2 className="deacon-display" style={{ fontSize: 'clamp(36px, 7vw, 84px)', margin: '16px 0', color: 'var(--color-paper-cream)' }}>
-            EXPERIENCE THE <span style={{ color: 'var(--color-meadow)' }}>ACCURATE</span> TRIP LEDGER
+        <div style={{ maxWidth: 'var(--page-max-width)', margin: '0 auto', padding: '0 clamp(16px, 4vw, 24px)' }}>
+          <h2 style={{ fontSize: 'clamp(24px, 4vw, 36px)', color: 'var(--color-paper-cream)', marginBottom: '12px' }}>
+            READY FOR YOUR NEXT ADVENTURE?
           </h2>
-          <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: '#c9d1c8', marginBottom: '32px' }}>
-            Create your trip workspace in under 60 seconds. Invite your friends, track bookings, schedule daily timelines, scan receipts, and enjoy seamless settlements.
+          <p style={{ fontSize: '14px', color: '#c9d1c8', marginBottom: '24px', maxWidth: '480px', margin: '0 auto 24px auto' }}>
+            Create a trip in 30 seconds. Invite your friends and let TripLedger do the heavy lifting.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
-            <Link to="/register" className="btn-meadow">
-              CREATE YOUR TRIP NOW <ArrowRight size={18} />
-            </Link>
-            <Link to="/login" className="btn-ghost-dark">
-              SIGN IN TO MY TRIPS
-            </Link>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '32px' }}>
+            {user ? (
+              <Link to="/trips" className="btn-meadow" style={{ textDecoration: 'none' }}>
+                OPEN TRIPS DASHBOARD <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <Link to="/register" className="btn-meadow" style={{ textDecoration: 'none' }}>
+                START FREE NOW <ArrowRight size={18} />
+              </Link>
+            )}
+          </div>
+
+          <div style={{
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            paddingTop: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+            fontSize: '12px',
+            color: 'var(--color-driftwood)'
+          }}>
+            <div>© {new Date().getFullYear()} TripLedger. Double-Entry Group Travel Engine.</div>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <a href="#how-it-works" style={{ color: 'var(--color-driftwood)', textDecoration: 'none' }}>Tutorial</a>
+              <Link to="/login" style={{ color: 'var(--color-driftwood)', textDecoration: 'none' }}>Sign In</Link>
+              <Link to="/register" style={{ color: 'var(--color-driftwood)', textDecoration: 'none' }}>Create Account</Link>
+            </div>
           </div>
         </div>
-      </section>
-
-
-      {/* FLOATING TRIP STATUS CHIP */}
-      <div className="floating-chip">
-        <div style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--color-meadow)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--color-forest-ink)',
-          fontSize: '14px'
-        }}>
-          ✓
-        </div>
-        <div>
-          <span style={{ fontWeight: 700, display: 'block', fontSize: '12px' }}>TRIP OPERATING SYSTEM</span>
-          <span style={{ fontSize: '11px', color: 'var(--color-moss-gray)' }}>10 Integrated Platform Modules</span>
-        </div>
-      </div>
+      </footer>
 
     </div>
   );
 };
-
-export default LandingPage;

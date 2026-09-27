@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { LandingPage } from './pages/LandingPage';
@@ -10,6 +10,8 @@ import { TripWorkspace } from './pages/TripWorkspace';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--color-forest-ink)', fontWeight: 700 }}>
@@ -17,7 +19,7 @@ const ProtectedRoute = ({ children }) => {
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return children;
 };
 

@@ -277,7 +277,9 @@ router.get('/me', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
-    res.json({ success: true, user });
+    const userObj = user.toObject();
+    userObj.id = user._id.toString();
+    res.json({ success: true, user: userObj });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error fetching profile.' });
   }

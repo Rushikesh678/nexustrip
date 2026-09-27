@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { Compass, KeyRound, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
@@ -11,6 +11,8 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectPath = location.state?.from?.pathname || '/trips';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +21,7 @@ export const LoginPage = () => {
     try {
       const res = await login(email, password);
       if (res.success) {
-        navigate('/trips');
+        navigate(redirectPath, { replace: true });
       } else {
         setError(res.message || 'Login failed.');
       }
@@ -36,7 +38,7 @@ export const LoginPage = () => {
     try {
       const res = await loginWithGoogle(credentialResponse.credential);
       if (res.success) {
-        navigate('/trips');
+        navigate(redirectPath, { replace: true });
       } else {
         setError(res.message || 'Google login failed.');
       }
